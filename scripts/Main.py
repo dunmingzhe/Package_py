@@ -11,7 +11,7 @@ if __name__ == '__main__':
     file = QFile("dark.qss")
     file.open(QFile.ReadOnly | QFile.Text)
     stream = QTextStream(file)
-    mainWin.setStyleSheet(stream.readAll())
+    # mainWin.setStyleSheet(stream.readAll())
     mainWin.show()
     sys.exit(app.exec_())
 

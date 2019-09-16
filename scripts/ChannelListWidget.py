@@ -63,15 +63,6 @@ class ChannelListWidget(QWidget):
         back_btn.clicked.connect(self.back)
         h_layout2.addWidget(back_btn, alignment=Qt.AlignLeft | Qt.AlignBottom)
 
-        h_layout2.addSpacing(150)
-        select_apk_btn = QPushButton("选择母包:")
-        select_apk_btn.clicked.connect(self.select_apk)
-        h_layout2.addWidget(select_apk_btn)
-        self.apk_path = QLineEdit()
-        self.apk_path.setPlaceholderText("母包路径")
-        h_layout2.addWidget(self.apk_path)
-        h_layout2.addSpacing(150)
-
         pack_btn = QPushButton("打 包")
         pack_btn.setFixedWidth(100)
         pack_btn.clicked.connect(self.to_package)
@@ -114,18 +105,9 @@ class ChannelListWidget(QWidget):
     def back(self):
         self.main_win.set_game_list_widget(self.main_win.games)
 
-    def select_apk(self):
-        fname = QFileDialog.getOpenFileName(self, '选择母包', os.path.join(os.path.expanduser('~'), "Desktop"), ("Apk (*.apk)"))
-        if fname[0]:
-            self.apk_path.setStyleSheet("font-size:12px")
-            self.apk_path.setText(fname[0])
-
     def to_package(self):
         if self.channel_id_value.text().strip() == "":
             QMessageBox.warning(self, "警告", "渠道ID不能为空！")
-            return
-        if self.apk_path.text().strip() == "":
-            QMessageBox.warning(self, "警告", "母包未上传！")
             return
         self.channel['channelId'] = self.channel_id_value.text().strip()
         self.channel['gameName'] = self.game_name_value.text().strip()
@@ -143,4 +125,5 @@ class ChannelListWidget(QWidget):
         self.channels[self.channel_index] = self.channel
         game_id = self.main_win.games[self.main_win.game_index]['id']
         Utils.update_channels(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel, self.channel_index)
-        self.main_win.do_package(self.channel, self.apk_path.text().strip().replace('\\', '/'))
+        # self.main_win.do_package(self.channel, self.apk_path.text().strip().replace('\\', '/'))
+        self.main_win.set_package_widget(self.channels)

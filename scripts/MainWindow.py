@@ -11,6 +11,7 @@ from scripts.ChannelAddWidget import ChannelAddWidget
 from scripts.ChannelListWidget import ChannelListWidget
 from scripts.GameCreateWidget import GameCreateWidget
 from scripts.GameListWidget import GameListWidget
+from scripts.PackageWidget import PackageWidget
 from scripts.PakcThread import PackThread
 
 
@@ -64,6 +65,10 @@ class MainWindow(QMainWindow):
     def set_add_channel_widget(self, channels):
         self.set_main_title(800, "添加渠道")
         self.setCentralWidget(ChannelAddWidget(self, channels))
+
+    def set_package_widget(self, channels):
+        self.set_main_title(800, "渠道打包")
+        self.setCentralWidget(PackageWidget(self, channels))
 
     def do_package(self, channel, apk):
         self.progress = QProgressDialog(self)
