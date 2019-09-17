@@ -21,7 +21,6 @@ class GameListWidget(QWidget):
         v_layout1 = QVBoxLayout()
         self.game_list_view = QListView()
         self.game_list_view.setViewMode(QListView.ListMode)
-        self.game_list_view.setStyleSheet("QListView{icon-size:60px}")
         self.game_list_model = GameListModel(self.main_win.games)
         self.game_list_view.setModel(self.game_list_model)
         self.game_list_view.clicked.connect(self.list_item_onclick)

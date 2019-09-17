@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
-
 from PyQt5.QtCore import Qt, QStringListModel
 from PyQt5.Qt import QLabel, QListView, QLineEdit, QFormLayout, QHBoxLayout, \
-    QPushButton, QVBoxLayout, QWidget, QMessageBox, QFileDialog
+    QPushButton, QVBoxLayout, QWidget, QMessageBox
 
 from scripts import Utils
 
@@ -28,7 +26,6 @@ class ChannelListWidget(QWidget):
         list_model.setStringList(self.sdks)
         self.channel_list_view = QListView()
         self.channel_list_view.setModel(list_model)
-        self.channel_list_view.setStyleSheet("QListView::item{padding:5px}")
         self.channel_list_view.clicked.connect(self.list_item_onclick)
         h_layout1.addWidget(self.channel_list_view, 1)
 
@@ -125,5 +122,4 @@ class ChannelListWidget(QWidget):
         self.channels[self.channel_index] = self.channel
         game_id = self.main_win.games[self.main_win.game_index]['id']
         Utils.update_channels(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel, self.channel_index)
-        # self.main_win.do_package(self.channel, self.apk_path.text().strip().replace('\\', '/'))
         self.main_win.set_package_widget(self.channels)

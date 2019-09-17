@@ -20,7 +20,7 @@ class Logger(object):
 
         # 定义handler的输出格式
         formatter = logging.Formatter(
-            '[%(asctime)s] %(filename)s->%(funcName)s line:%(lineno)d [%(levelname)s]%(message)s')
+            '[%(asctime)s]:[%(levelname)s]%(message)s')
         fh.setFormatter(formatter)
         # ch.setFormatter(formatter)
         # 给logger添加handler
@@ -41,8 +41,6 @@ def add_logger(thread_id, logger):
 
 
 def info(msg, *args):
-    print(dic)
-    print(threading.get_ident())
     logger = dic[threading.get_ident()]
     logger.info(msg, *args)
 

@@ -2,9 +2,8 @@
 import threading
 
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMainWindow, QProgressDialog, QMessageBox, pyqtSignal
+from PyQt5.Qt import QMainWindow
 
 from scripts import Utils, LogUtils
 from scripts.ChannelAddWidget import ChannelAddWidget
@@ -12,7 +11,6 @@ from scripts.ChannelListWidget import ChannelListWidget
 from scripts.GameCreateWidget import GameCreateWidget
 from scripts.GameListWidget import GameListWidget
 from scripts.PackageWidget import PackageWidget
-from scripts.PakcThread import PackThread
 
 
 class MainWindow(QMainWindow):
@@ -69,33 +67,3 @@ class MainWindow(QMainWindow):
     def set_package_widget(self, channels):
         self.set_main_title(800, "渠道打包")
         self.setCentralWidget(PackageWidget(self, channels))
-
-    def do_package(self, channel, apk):
-        self.progress = QProgressDialog(self)
-        self.progress.setFixedWidth(800)
-        self.progress.setFixedHeight(100)
-        self.progress.setWindowTitle("正在打包...")
-        text = self.games[self.game_index]['name'] + " + " + channel['name'] + "渠道 出包中......"
-        self.progress.setLabelText(text)
-        self.progress.setCancelButtonText("取消")
-        self.progress.canceled.connect(self.cancel)
-        self.progress.setMinimumDuration(0)
-        self.progress.setWindowModality(Qt.ApplicationModal)
-        self.progress.setRange(0, 100)
-        self.progress.setValue(1)
-        self.pack_thread = PackThread(self.games[self.game_index], channel, apk)
-        self.pack_thread.signal.connect(self.set_value)
-        self.pack_thread.finished.connect(self.pack_thread.deleteLater)
-        self.pack_thread.start()
-
-    def set_value(self, result, msg, step):
-        if result:
-            # 出现异常，提示异常
-            self.progress.cancel()
-            QMessageBox.warning(self, "警告", msg)
-        else:
-            self.progress.setValue(step)
-
-    def cancel(self):
-        self.pack_thread.is_close = True
-        QMessageBox.warning(self, "警告", "打包已取消")
