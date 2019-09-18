@@ -58,3 +58,5 @@ def warning(msg, *args):
 def error(msg, *args):
     logger = dic[threading.get_ident()]
     logger.error(msg, *args)
+
+# TODO 当前打包任务完成，关闭filehandler的流

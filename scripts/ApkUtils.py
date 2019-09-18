@@ -391,6 +391,7 @@ def copy_root_res_files(apk_file, decompile_dir):
 def sign_apk(game, apk_file):
     key_path = Utils.get_full_path('games/' + game['id'] + '/keystore/' + game['keystore'])
     if not os.path.exists(key_path):
+        LogUtils.info('the keystore file not exists: %s', key_path)
         return 1
     LogUtils.info('the keystore file is %s', key_path)
     aapt = Utils.get_full_path('tools/aapt.exe')

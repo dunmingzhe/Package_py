@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import threading
-import time
-from PyQt5.QtCore import QRunnable, pyqtSignal, QObject
+from PyQt5.QtCore import QRunnable, pyqtSignal, QObject, QDateTime
 
 from scripts import LogUtils, Utils, ApkUtils
 
@@ -23,6 +22,7 @@ class PackRunnable(QRunnable):
         self.signal = Signal()
 
     def run(self):
+        self.signal.signal.emit(self.channel['channelId'], 1, "正在打包......", 0)
         # 清空已有的workspace
         work_dir = Utils.get_full_path('workspace/' + self.game['id'] + '/' + self.channel['channelId'])
         Utils.del_file(work_dir)
@@ -42,7 +42,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制母包文件失败，详情查看log.log", 5)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制母包文件失败，详情查看log.log", 5)
             if result:
                 return
         # 反编译母包
@@ -52,7 +52,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "反编译母包异常，详情查看log.log", 15)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：反编译母包异常，详情查看log.log", 15)
             if result:
                 return
 
@@ -63,7 +63,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制SDK文件夹失败，详情查看log.log", 18)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制SDK文件夹失败，详情查看log.log", 18)
             if result:
                 return
         # 将插件里的jar资源转dex
@@ -71,7 +71,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "渠道jar转dex异常，详情查看log.log", 25)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：渠道jar转dex异常，详情查看log.log", 25)
             if result:
                 return
         # 将插件里的dex资源转smali，合并到母包反编译目录中
@@ -79,7 +79,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "渠道dex转smali异常，详情查看log.log", 28)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：渠道dex转smali异常，详情查看log.log", 28)
             if result:
                 return
 
@@ -88,7 +88,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "合并manifest文件失败，详情查看log.log", 30)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：合并manifest文件失败，详情查看log.log", 30)
             if result:
                 return
         # 复制插件libs里的so库
@@ -96,13 +96,13 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制libs文件夹失败，详情查看log.log", 33)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制libs文件夹失败，详情查看log.log", 33)
         # 复制插件assets文件夹
         result = Utils.copy_file(sdk_dest_dir + '/assets', decompile_dir + '/assets')
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制assets文件夹失败，详情查看log.log", 35)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制assets文件夹失败，详情查看log.log", 35)
             if result:
                 return
         # 复制插件res文件夹
@@ -110,7 +110,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制res文件夹失败，详情查看log.log", 38)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制res文件夹失败，详情查看log.log", 38)
             if result:
                 return
 
@@ -119,7 +119,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "复制渠道特殊文件夹失败，详情查看log.log", 40)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：复制渠道特殊文件夹失败，详情查看log.log", 40)
 
         # 将游戏原来的包名替换成渠道里面的包名，四大组件也会按照相关规则替换包名
         package_name = ApkUtils.rename_package_name(decompile_dir, self.channel['package'])
@@ -139,7 +139,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "写入配置参数失败，详情查看log.log", 52)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：写入配置参数失败，详情查看log.log", 52)
             if result:
                 return
         # 如果主sdk有特殊的逻辑。执行特殊的逻辑脚本。
@@ -147,7 +147,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "执行渠道脚本异常，详情查看log.log", 55)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：执行渠道脚本异常，详情查看log.log", 55)
             if result:
                 return
         # 修改游戏名称，并将meta-data写入manifest文件
@@ -161,7 +161,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "重新生成R文件异常，详情查看log.log", 75)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：重新生成R文件异常，详情查看log.log", 75)
             if result:
                 return
 
@@ -177,7 +177,7 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "回编译APK异常，详情查看log.log", 90)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：回编译APK异常，详情查看log.log", 90)
             if result:
                 return
         # 复制添加资源到apk
@@ -187,12 +187,13 @@ class PackRunnable(QRunnable):
         if self.is_close:
             return
         else:
-            self.signal.signal.emit(self.channel['channelId'], result, "渠道包签名异常，详情查看log.log", 98)
+            self.signal.signal.emit(self.channel['channelId'], result, "打包失败：渠道包签名异常，详情查看log.log", 98)
             if result:
                 return
         # apk对齐
-        dest_apk_name = self.game['name'] + '-' + self.channel['name'] + '-' + time.strftime('%Y%m%d%H') + '.apk'
-        dest_apk_dir = Utils.get_full_path('output/' + self.game['id'] + '/' + self.channel['name'])
+        time_str = QDateTime.currentDateTime().toString("yyyyMMddhhmm")
+        dest_apk_name = self.game['name'] + '-' + self.channel['name'] + '-' + time_str + '.apk'
+        dest_apk_dir = Utils.get_full_path('output/' + self.game['id'] + '/' + self.channel['channelId'])
         if not os.path.exists(dest_apk_dir):
             os.makedirs(dest_apk_dir)
         dest_apk = dest_apk_dir + '/' + dest_apk_name
@@ -201,9 +202,6 @@ class PackRunnable(QRunnable):
             pass
         else:
             if result == 0:
-                self.signal.signal.emit(self.channel['channelId'], result, dest_apk_dir, 100)
+                self.signal.signal.emit(self.channel['channelId'], 1, "打包成功：" + dest_apk_dir, 100)
             else:
-                self.signal.signal.emit(self.channel['channelId'], result, "apk包体4k对齐异常，详情查看log.log", 100)
-
-        # Utils.exec_cmd('start ' + dest_apk_dir)
-        # LogUtils.info('package success. ==>>>> APK Path:' + dest_apk)
+                self.signal.signal.emit(self.channel['channelId'], result, "打包失败：apk包体4k对齐异常，详情查看log.log", 100)

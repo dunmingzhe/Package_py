@@ -388,24 +388,20 @@ def exec_cmd(cmd):
         st.dwFlags = subprocess.STARTF_USESHOWWINDOW
         st.wShowWindow = subprocess.SW_HIDE
         LogUtils.info('cmd: %s', cmd)
-        process = subprocess.Popen(cmd, shell=True,
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        std, err = process.communicate()
-        if process.returncode:
+        sub = subprocess.run(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        code, std, err = sub.returncode, sub.stdout, sub.stderr
+        if code:
             LogUtils.error("\n" + err.decode('gbk'))
             LogUtils.info('===>exec Fail<===')
         else:
             # LogUtils.info(std.decode('gbk'))
             LogUtils.info('===>exec success<===')
-        return process.returncode
+        return code
     except Exception as e:
         LogUtils.error('Exception:' + e.__str__())
         return 1
     finally:
         LogUtils.info('*********************cmd end***********************')
-        process.kill()
 
 
 def exec_cmd2(cmd):
@@ -417,12 +413,9 @@ def exec_cmd2(cmd):
         st.dwFlags = subprocess.STARTF_USESHOWWINDOW
         st.wShowWindow = subprocess.SW_HIDE
         LogUtils.info('cmd: %s', cmd)
-        process = subprocess.Popen(cmd, shell=True,
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        std, err = process.communicate()
-        if process.returncode:
+        sub = subprocess.run(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        code, std, err = sub.returncode, sub.stdout, sub.stderr
+        if code:
             LogUtils.error("\n" + err.decode('gbk'))
             LogUtils.info('===>exec Fail<===')
             return None
@@ -433,4 +426,3 @@ def exec_cmd2(cmd):
         return None
     finally:
         LogUtils.info('*********************cmd end***********************')
-        process.kill()
