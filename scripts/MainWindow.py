@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import threading
-
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMainWindow
@@ -17,16 +15,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
-        thread_id = threading.get_ident()
-        logger = LogUtils.Logger("main").get_logger()
-        LogUtils.add_logger(thread_id, logger)
-
+        LogUtils.add_logger()
         self.game_index = 0
-        self.progress = None
-        self.pack_thread = None
-
         self.setObjectName("MainWindow")
-        self.resize(1000, 563)
+        self.resize(960, 540)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)

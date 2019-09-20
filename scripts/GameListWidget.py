@@ -104,6 +104,8 @@ class GameListWidget(QWidget):
         self.set_game_info()
 
     def add_game(self):
+        if not self.save_data():
+            return
         self.main_win.set_create_game_widget(self.main_win.games)
 
     def select_ketstore(self):
@@ -148,22 +150,22 @@ class GameListWidget(QWidget):
             else:
                 Utils.copy_file(fname[0], old_icon)
 
-    def next(self):
+    def save_data(self):
         if self.game_name_value.text().strip() == "":
             QMessageBox.warning(self, "警告", "游戏名称不能为空！")
-            return
+            return False
         if self.keystore_path.text().strip() == "":
             QMessageBox.warning(self, "警告", "必须上传keystore签名文件！")
-            return
+            return False
         if self.keystore_pwd_value.text().strip() == "":
             QMessageBox.warning(self, "警告", "keystore密码不能为空！")
-            return
+            return False
         if self.keystore_alias_value.text().strip() == "":
             QMessageBox.warning(self, "警告", "alias不能为空！")
-            return
+            return False
         if self.keystore_aliaspwd_value.text().strip() == "":
             QMessageBox.warning(self, "警告", "alias密码不能为空！")
-            return
+            return False
         self.game['name'] = self.game_name_value.text().strip()
         self.game['desc'] = self.game_desc_value.toPlainText().strip()
         if self.keystore_exchanged:
@@ -173,13 +175,17 @@ class GameListWidget(QWidget):
             self.game['alias'] = self.keystore_alias_value.text().strip()
             self.game['aliaspwd'] = self.keystore_aliaspwd_value.text().strip()
             keystore_path = Utils.get_full_path('games/' + self.game['id'] + '/keystore/' + keystore)
-            if not os.path.samefile(self.keystore_path.text().strip(), keystore_path):
+            if not os.path.exists(keystore_path):
                 Utils.copy_file(self.keystore_path.text().strip(), keystore_path)
 
         self.main_win.games[self.main_win.game_index] = self.game
         self.game_list_model.update_item(self.main_win.game_index, self.game)
         Utils.update_games(Utils.get_full_path('games/games.xml'), self.main_win.games)
+        return True
 
+    def next(self):
+        if not self.save_data():
+            return
         channels = Utils.get_channels(Utils.get_full_path('games/' + self.game['id'] + '/config.xml'))
         if channels is None:
             if not os.path.exists(Utils.get_full_path('channelsdk')):

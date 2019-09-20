@@ -13,10 +13,11 @@ androidNS = 'http://schemas.android.com/apk/res/android'
 
 
 def decompile_apk(apk_file, target_dir, frame_work_dir):
-    apk_tool = Utils.get_full_path('tools/apktool.bat')
+    java = Utils.get_full_path('tools/jdk/bin/java')
+    apk_tool = Utils.get_full_path('tools/apktool.jar')
     os.makedirs(target_dir)
     os.makedirs(frame_work_dir)
-    cmd = "%s d %s -o %s -p %s -f" % (apk_tool, apk_file, target_dir, frame_work_dir)
+    cmd = "%s -jar %s d %s -o %s -p %s -f" % (java, apk_tool, apk_file, target_dir, frame_work_dir)
     return Utils.exec_cmd(cmd)
 
 
@@ -203,21 +204,27 @@ def write_develop_info(game, channel, decompile_dir):
     if not os.path.exists(assets_path):
         os.makedirs(assets_path)
     develop_config_file = os.path.join(assets_path, 'developer_configs_ss.properties')
-    Utils.write_developer_properties(game, channel, develop_config_file)
+    ret = Utils.write_developer_properties(game, channel, develop_config_file)
+    if ret:
+        return ret
     plugin_file = os.path.join(assets_path, 'plugin_configs_ss.xml')
     return Utils.write_plugin_config(channel, plugin_file)
 
 
 def do_sdk_script(channel, decompile_dir, package_name, sdk_dir):
-    sdk_script = os.path.join(sdk_dir, 'sdk_script.pyc')
-    if not os.path.exists(sdk_script):
+    script = os.path.join(sdk_dir, 'script.pyc')
+    if not os.path.exists(script):
         return 0
-    sys.path.append(sdk_dir)
-    import sdk_script
-    ret = sdk_script.execute(channel, decompile_dir, package_name)
-    del sys.modules['sdk_script']
-    sys.path.remove(sdk_dir)
-    return ret
+    try:
+        sys.path.append(sdk_dir)
+        import script
+        script.execute(channel, decompile_dir, package_name)
+        del sys.modules['script']
+        sys.path.remove(sdk_dir)
+        return 0
+    except Exception as e:
+        LogUtils.error('%s execute failed:%s', script, e.__str__())
+        return 1
 
 
 def modify_manifest(channel, decompile_dir, package_name):
@@ -312,80 +319,66 @@ def generate_r_file(package_name, decompile_dir):
 def edit_yml(channel, decompile_dir):
     LogUtils.info('-----> EditYML <------')
     path = decompile_dir + '/apktool.yml'
-    yml_file = open(path, 'r+')
+    yml_file = open(path, encoding='utf-8')
     content = ''
     while True:
-        mystr = yml_file.readline()
-        if mystr.find('- assets/') == 0:
+        line = yml_file.readline()
+        if line.find('- assets/') == 0:
             yml_file.tell()
-        elif mystr.find('targetSdkVersion') != -1:
+        elif line.find('targetSdkVersion') != -1:
             config = Utils.get_local_config()
-            if config['TARGET_SDK_VERSION'] != '0':
+            if config is not None and config['TARGET_SDK_VERSION'] != '0':
                 content += '  targetSdkVersion: \'' + config['TARGET_SDK_VERSION'] + '\'\n'
             else:
-                content += mystr
-        elif mystr.find('versionCode') != -1 and len(channel['gameVersionCode']) > 0:
+                content += line
+        elif line.find('versionCode') != -1 and len(channel['gameVersionCode']) > 0:
             content += '  versionCode: \'' + channel['gameVersionCode'] + '\'\n'
-        elif mystr.find('versionName') != -1 and len(channel['gameVersionName']) > 0:
+        elif line.find('versionName') != -1 and len(channel['gameVersionName']) > 0:
             content += '  versionName: ' + channel['gameVersionName'] + '\n'
         else:
-            if not mystr:
+            if not line:
                 break
-            mystr.replace('\r', '')
-            if mystr.strip() != '':
-                content += mystr
-                if mystr.find('doNotCompress:') == 0:
+            line.replace('\r', '')
+            if line.strip() != '':
+                content += line
+                if line.find('doNotCompress:') == 0:
                     yml_file.tell()
                     content += '- assets/*\n'
-    LogUtils.info("apktool.yml:\n" + content)
-    with open(path, 'r+') as f:
-        f.read()
-        f.seek(0)
-        f.truncate()
+    LogUtils.info("apktool.yml:\n%s", content)
+    with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
 
 
 def recompile_apk(source_folder, apk_file, frame_work_dir):
-    apk_tool = Utils.get_full_path('tools/apktool.bat')
-    cmd = "%s b %s -o %s -p %s" % (apk_tool, source_folder, apk_file, frame_work_dir)
+    java = Utils.get_full_path('tools/jdk/bin/java')
+    apk_tool = Utils.get_full_path('tools/apktool.jar')
+    cmd = "%s -jar %s b %s -o %s -p %s" % (java, apk_tool, source_folder, apk_file, frame_work_dir)
     return Utils.exec_cmd(cmd)
 
 
-def copy_root_res_files(apk_file, decompile_dir):
+def copy_root_ext_files(apk_file, decompile_dir):
     aapt = Utils.get_full_path('tools/aapt2.exe')
-    igoreFiles = ['AndroidManifest.xml',
-                  'apktool.yml',
-                  'smali',
-                  'res',
-                  'original',
-                  'lib',
-                  'build',
-                  'assets',
-                  'unknown',
-                  'kotlin',
-                  'smali_classes2',
-                  'smali_classes3',
-                  'smali_classes4',
-                  'smali_classes5']
-    igoreFileFullPaths = []
-    for ifile in igoreFiles:
-        fullpath = os.path.join(decompile_dir, ifile)
-        igoreFileFullPaths.append(fullpath)
+    ignore_files = ['AndroidManifest.xml', 'apktool.yml', 'smali', 'res', 'original', 'lib', 'build', 'assets',
+                    'unknown', 'kotlin', 'smali_classes2', 'smali_classes3', 'smali_classes4', 'smali_classes5']
+    ignore_file_paths = []
+    for file in ignore_files:
+        path = os.path.join(decompile_dir, file)
+        ignore_file_paths.append(path)
 
-    addFiles = []
-    addFiles = Utils.list_files(decompile_dir, addFiles, igoreFileFullPaths)
-    if len(addFiles) <= 0:
-        return
-    addCmd = '%s add %s'
-    for f in addFiles:
-        fname = f[len(decompile_dir) + 1:]
-        addCmd = addCmd + ' ' + fname
-
-    addCmd = addCmd % (aapt, apk_file)
-    currPath = os.getcwd()
+    add_files = []
+    add_files = Utils.list_files(decompile_dir, add_files, ignore_file_paths)
+    if len(add_files) <= 0:
+        return 0
+    cmd = '%s add %s'
+    for f in add_files:
+        name = f[len(decompile_dir) + 1:]
+        cmd = cmd + ' ' + name
+    cmd = cmd % (aapt, apk_file)
+    curr_path = os.getcwd()
     os.chdir(decompile_dir)
-    Utils.exec_cmd(addCmd)
-    os.chdir(currPath)
+    ret = Utils.exec_cmd(cmd)
+    os.chdir(curr_path)
+    return ret
 
 
 def sign_apk(game, apk_file):
@@ -412,7 +405,7 @@ def sign_apk(game, apk_file):
     return Utils.exec_cmd(sign_cmd)
 
 
-def zipalign_apk(apk_file, target_file):
+def align_apk(apk_file, target_file):
     align = Utils.get_full_path('tools/zipalign.exe')
     cmd = '%s -f 4 %s %s' % (align, apk_file, target_file)
     return Utils.exec_cmd(cmd)

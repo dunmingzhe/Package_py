@@ -2,9 +2,10 @@
 import os
 
 from PyQt5.QtCore import Qt, QSize, QThreadPool
-from PyQt5.Qt import QLabel, QLineEdit, QHBoxLayout, QPushButton, QVBoxLayout, QListWidget,\
-    QWidget, QScrollArea, QCheckBox, QProgressBar, QFileDialog, QMessageBox, QListWidgetItem
+from PyQt5.Qt import QLabel, QLineEdit, QHBoxLayout, QPushButton, QVBoxLayout, QListWidget, QProgressDialog,\
+    QWidget, QScrollArea, QCheckBox, QProgressBar, QFileDialog, QMessageBox, QListWidgetItem, QAbstractItemView
 
+from scripts import Utils
 from scripts.PackRunnable import PackRunnable
 from scripts.PackageMonitor import PackageMonitor
 
@@ -13,8 +14,10 @@ class PackageWidget(QWidget):
     def __init__(self, main, channels):
         super(PackageWidget, self).__init__()
         self.main_win = main
+        self.game = self.main_win.games[self.main_win.game_index]
         self.channels = channels
         self.check_boxs = []
+        self.indexs = []
         self.lbps = {}
         self.setObjectName("PackageWidget")
         self.pool = QThreadPool()
@@ -22,6 +25,7 @@ class PackageWidget(QWidget):
         self.pool.setMaxThreadCount(3)
         self.monitor = PackageMonitor(self.pool)
         self.monitor.signal.connect(self.complete)
+        self.progress = None
 
         v_layout = QVBoxLayout()
         h_layout1 = QHBoxLayout()
@@ -42,6 +46,8 @@ class PackageWidget(QWidget):
         h_layout1.addWidget(channel_list_area, 1)
 
         self.qpb_list_widget = QListWidget()
+        self.qpb_list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.qpb_list_widget.clicked.connect(self.select_list)
         h_layout1.addWidget(self.qpb_list_widget, 5)
         v_layout.addLayout(h_layout1)
 
@@ -67,6 +73,16 @@ class PackageWidget(QWidget):
 
         v_layout.addLayout(h_layout2)
         self.setLayout(v_layout)
+
+    def select_list(self):
+        index = self.qpb_list_widget.currentIndex().row()
+        channel_id = self.channels[self.indexs[index]]['channelId']
+        success = self.lbps[channel_id]['success']
+        dest_apk_dir = Utils.get_full_path('output/' + self.game['id'] + '/' + channel_id)
+        if success:
+            Utils.exec_cmd('start ' + dest_apk_dir)
+        else:
+            QMessageBox.warning(self, "警告", "打包成功了吗？")
 
     def back(self):
         self.monitor.deleteLater()
@@ -100,24 +116,24 @@ class PackageWidget(QWidget):
                 item = self.qpb_list_widget.takeItem(0)
                 del item
 
-        indexs = []
+        self.indexs = []
         for i in range(len(self.channels)):
             if self.check_boxs[i].isChecked():
-                indexs.append(i)
-        if len(indexs) <= 0:
+                self.indexs.append(i)
+        if len(self.indexs) <= 0:
             QMessageBox.warning(self, "警告", "请选择需要打包的渠道！")
             return
 
         if self.apk_path.text().strip() == "":
-            QMessageBox.warning(self, "警告", "母包未上传！")
+            QMessageBox.warning(self, "警告", "请上传母包！")
             return
 
-        game = self.main_win.games[self.main_win.game_index]
         apk = self.apk_path.text().strip().replace('\\', '/')
-        for i in indexs:
+        for i in self.indexs:
             lbp = {}
+            lbp['success'] = False
             self.set_qpb_list_item(self.channels[i], lbp)
-            runnable = PackRunnable(game, self.channels[i], apk)
+            runnable = PackRunnable(self.game, self.channels[i], apk)
             runnable.signal.signal.connect(self.set_value)
             self.pool.start(runnable)
             lbp['runnable'] = runnable
@@ -134,7 +150,6 @@ class PackageWidget(QWidget):
         widget = QWidget(self.qpb_list_widget)
         v_layout = QVBoxLayout()
         label = QLabel(channel['channelId'] + "==>>>等待出包...")
-        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         v_layout.addWidget(label)
         lbp['label'] = label
         qpb = QProgressBar(self.qpb_list_widget)
@@ -146,17 +161,28 @@ class PackageWidget(QWidget):
 
     def set_value(self, channel_id, result, msg, step):
         lbp = self.lbps[channel_id]
-        # 打包步骤异常，提示异常，关闭进度条
-        if result:
+        if result:  # 打包步骤异常，提示异常，关闭进度条
             lbp['label'].setText(channel_id + "==>>>" + msg)
-            if step != 0:
-                lbp['qpb'].close()
-        # 打包正常，设置进度条进度
-        else:
+            lbp['qpb'].close()
+            if step == 100:
+                lbp['success'] = True
+                self.lbps[channel_id] = lbp
+        else:   # 打包正常，设置进度条进度
             lbp['qpb'].setValue(step)
+            if step == 0:
+                lbp['label'].setText(channel_id + "==>>>" + msg)
 
     # 取消打包（全部取消）
     def cancel(self):
+        self.progress = QProgressDialog(self)
+        self.progress.setFixedWidth(500)
+        self.progress.setFixedHeight(80)
+        self.progress.setWindowTitle("正在取消，请稍等...")
+        self.progress.setCancelButtonText("取消")
+        self.progress.setMinimumDuration(1)
+        self.progress.setWindowModality(Qt.ApplicationModal)
+        self.progress.setRange(0, 0)
+        self.progress.show()
         # 清空进度条显示列表
         count = self.qpb_list_widget.count()
         for i in range(count):
@@ -169,11 +195,14 @@ class PackageWidget(QWidget):
             self.lbps[channel_id]['runnable'].is_close = True
         self.pool.clear()
 
+    # 取消打包（清空任务完成），或打包完成，
     def complete(self):
-        # 取消打包，或打包完成，清空复选框的选择
+        if self.progress is not None:
+            self.progress.cancel()
+        # 清空复选框的选择
         self.all_selected_cbox.setChecked(False)
         for cbox in self.check_boxs:
             cbox.setChecked(False)
-        # 取消打包，或打包完成，返回按钮解禁；设置打包按钮文本为"打 包"
+        # 返回按钮解禁；设置打包按钮文本为"打 包"
         self.back_btn.setDisabled(False)
         self.pack_btn.setText("打 包")

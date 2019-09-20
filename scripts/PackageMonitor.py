@@ -17,11 +17,8 @@ class PackageMonitor(QThread):
         flag = True
         while flag:
             count = self.pool.activeThreadCount()
-            # 打包完成，发完成信号，重置flag，终止线程
-            if count <= 0:
+            if count <= 0:  # 打包完成，发完成信号，重置flag，终止线程
                 self.signal.emit()
                 flag = False
-            # 打包进行中，线程休眠
-            else:
-                print(count)
+            else:   # 打包进行中，线程休眠
                 QThread.sleep(3)

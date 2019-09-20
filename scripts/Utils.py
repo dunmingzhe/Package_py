@@ -69,14 +69,14 @@ def copy_file(src, dest):
     return 0
 
 
-def list_files(src, res_files, igore_files):
+def list_files(src, res_files, ignore_files):
     if os.path.exists(src):
-        if os.path.isfile(src) and src not in igore_files:
+        if os.path.isfile(src) and src not in ignore_files:
             res_files.append(src)
         elif os.path.isdir(src):
             for f in os.listdir(src):
-                if src not in igore_files:
-                    list_files(os.path.join(src, f), res_files, igore_files)
+                if src not in ignore_files:
+                    list_files(os.path.join(src, f), res_files, ignore_files)
 
     return res_files
 
@@ -329,15 +329,17 @@ def get_channel_config(channel):
 
 
 def get_local_config():
-    config_file = get_full_path('config.ini')
+    config_file = 'config.ini'
     if not os.path.exists(config_file):
-        LogUtils.error('local.properties is not exists. ==> ' + config_file)
+        LogUtils.error('config.ini is not exists. ==> ' + config_file)
         return None
-    cf = open(config_file, 'r')
+    cf = open(config_file, 'r', encoding='utf-8')
     lines = cf.readlines()
     cf.close()
     config = {}
     for line in lines:
+        if line.startswith('#') or len(line.strip()) <= 0:
+            continue
         line = line.strip()
         dup = line.split('=')
         config[dup[0]] = dup[1]
@@ -346,6 +348,8 @@ def get_local_config():
 
 def write_developer_properties(game, channel, target_file_path):
     config = get_local_config()
+    if config is None:
+        return 1
     pro_str = 'YINHU_SDK_VERSION_CODE=' + config['YINHU_SDK_VERSION_CODE'] + '\n'
     pro_str = pro_str + 'YINHU_APPID=' + game['id'] + '\n'
     pro_str = pro_str + 'YINHU_APPKEY=' + game['key'] + '\n'
@@ -357,11 +361,11 @@ def write_developer_properties(game, channel, target_file_path):
             if param['writeIn'] == '2':
                 pro_str = pro_str + param['name'] + '=' + param['value'] + '\n'
 
-    LogUtils.debug('the develop info is:\n%s', pro_str)
-    target_file = open(target_file_path, 'wb')
-    pro_str = pro_str.encode('UTF-8')
+    LogUtils.info('the develop info is:\n%s', pro_str)
+    target_file = open(target_file_path, 'w', encoding='utf-8')
     target_file.write(pro_str)
     target_file.close()
+    return 0
 
 
 def write_plugin_config(channel, plugin_path):
@@ -391,13 +395,14 @@ def exec_cmd(cmd):
         sub = subprocess.run(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         code, std, err = sub.returncode, sub.stdout, sub.stderr
         if code:
+            LogUtils.error('===>exec Fail<===')
             LogUtils.error("\n" + err.decode('gbk'))
-            LogUtils.info('===>exec Fail<===')
         else:
             # LogUtils.info(std.decode('gbk'))
             LogUtils.info('===>exec success<===')
         return code
     except Exception as e:
+        LogUtils.error('===>exec Fail<===')
         LogUtils.error('Exception:' + e.__str__())
         return 1
     finally:
@@ -416,12 +421,13 @@ def exec_cmd2(cmd):
         sub = subprocess.run(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         code, std, err = sub.returncode, sub.stdout, sub.stderr
         if code:
+            LogUtils.error('===>exec Fail<===')
             LogUtils.error("\n" + err.decode('gbk'))
-            LogUtils.info('===>exec Fail<===')
             return None
         else:
             return std.decode('utf-8')
     except Exception as e:
+        LogUtils.error('===>exec Fail<===')
         LogUtils.error('Exception:' + e.__str__())
         return None
     finally:

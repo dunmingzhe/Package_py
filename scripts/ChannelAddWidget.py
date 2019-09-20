@@ -117,7 +117,6 @@ class ChannelAddWidget(QWidget):
                 QMessageBox.warning(self, "警告", "渠道参数不能为空！")
                 return
             self.channel['sdkParams'][i]['value'] = self.linedit_list[i].text().strip()
-        print(self.channel)
         self.channels.append(self.channel)
         Utils.add_channel(Utils.get_full_path('games/' + self.game['id'] + '/config.xml'), self.channel)
         self.main_win.set_channel_list_widget(self.channels)

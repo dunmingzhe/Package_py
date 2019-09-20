@@ -34,8 +34,7 @@ class ChannelListWidget(QWidget):
         form_layout = QFormLayout()
         form_layout.setContentsMargins(10, 100, 10, 50)
         form_layout.addRow("游戏ID：", QLabel(self.main_win.games[self.main_win.game_index]['id']))
-        self.channel_id_value = QLineEdit()
-        form_layout.addRow("渠道ID：", self.channel_id_value)
+        form_layout.addRow("渠道ID：", QLabel(self.channel['channelId']))
         self.game_name_value = QLineEdit()
         form_layout.addRow("游戏名称：", self.game_name_value)
         self.game_package_value = QLineEdit()
@@ -60,6 +59,11 @@ class ChannelListWidget(QWidget):
         back_btn.clicked.connect(self.back)
         h_layout2.addWidget(back_btn, alignment=Qt.AlignLeft | Qt.AlignBottom)
 
+        save_btn = QPushButton("保 存")
+        save_btn.setFixedWidth(100)
+        save_btn.clicked.connect(self.save_data)
+        h_layout2.addWidget(save_btn, alignment=Qt.AlignHCenter)
+
         pack_btn = QPushButton("打 包")
         pack_btn.setFixedWidth(100)
         pack_btn.clicked.connect(self.to_package)
@@ -69,7 +73,6 @@ class ChannelListWidget(QWidget):
         self.setLayout(v_layout1)
 
     def set_info(self):
-        self.channel_id_value.setText(self.channel['channelId'])
         self.game_name_value.setText(self.channel['gameName'])
         self.game_package_value.setText(self.channel['package'])
         self.game_vcode_value.setText(self.channel['gameVersionCode'])
@@ -103,10 +106,11 @@ class ChannelListWidget(QWidget):
         self.main_win.set_game_list_widget(self.main_win.games)
 
     def to_package(self):
-        if self.channel_id_value.text().strip() == "":
-            QMessageBox.warning(self, "警告", "渠道ID不能为空！")
+        if not self.save_data():
             return
-        self.channel['channelId'] = self.channel_id_value.text().strip()
+        self.main_win.set_package_widget(self.channels)
+
+    def save_data(self):
         self.channel['gameName'] = self.game_name_value.text().strip()
         self.channel['package'] = self.game_package_value.text().strip()
         self.channel['gameVersionCode'] = self.game_vcode_value.text().strip()
@@ -116,10 +120,10 @@ class ChannelListWidget(QWidget):
         while i < len(self.linedit_list):
             if self.linedit_list[i].text().strip() == "":
                 QMessageBox.warning(self, "警告", "渠道参数不能为空！")
-                return
+                return False
             self.channel['sdkParams'][i]['value'] = self.linedit_list[i].text().strip()
             i += 1
         self.channels[self.channel_index] = self.channel
         game_id = self.main_win.games[self.main_win.game_index]['id']
         Utils.update_channels(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel, self.channel_index)
-        self.main_win.set_package_widget(self.channels)
+        return True

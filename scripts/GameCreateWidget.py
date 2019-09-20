@@ -72,7 +72,7 @@ class GameCreateWidget(QWidget):
         create_btn.clicked.connect(self.create)
         v_layout2.addWidget(create_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
         v_layout2.addStretch(1)
-        if self.main_win.games is not None:
+        if len(self.main_win.games) > 0:
             back_btn = QPushButton("返 回")
             back_btn.setFixedWidth(100)
             back_btn.clicked.connect(self.back)
@@ -150,13 +150,11 @@ class GameCreateWidget(QWidget):
         os.mkdir(Utils.get_full_path('games/' + self.game['id'] + '/keystore'))
         keystore_path = Utils.get_full_path('games/' + self.game['id'] + '/keystore/' + keystore)
         Utils.copy_file(self.keystore_path.text().strip(), keystore_path)
-        # open(keystore_path, "wb").write(open(self.keystore_path.text(), "rb").read())
 
         os.mkdir(Utils.get_full_path('games/' + self.game['id'] + '/icon'))
         if self.icon_path is not None:
             icon_file = Utils.get_full_path('games/' + self.game['id'] + '/icon/icon.png')
             Utils.copy_file(self.icon_path, icon_file)
-            # open(icon_file, "wb").write(open(self.icon_path, "rb").read())
 
         self.main_win.games.append(self.game)
         Utils.add_game(Utils.get_full_path('games/games.xml'), self.game)
