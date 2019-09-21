@@ -211,8 +211,8 @@ def set_channel_params(channel):
             if key in channel['params'] and channel['params'][key] is not None:
                 param['value'] = channel['params'][key]
             else:
-                LogUtils.debug("the sdk %s 'sdkParam's is not all configed in the config.xml.path:%s", channel['name'], config_file)
-                return 0
+                LogUtils.info("the sdk %s have a new parameter:%s", channel['name'], key)
+                param['value'] = ""
             param['showName'] = param_node.get('showName')
             param['writeIn'] = param_node.get('writeIn')
             channel['sdkParams'].append(param)
@@ -235,32 +235,6 @@ def set_channel_params(channel):
             channel['sdkUpdateTime'] = version_update_time.text
             channel['sdkVersionName'] = version_name_node.text
     return 1
-
-
-def update_channels(config_path, channel, index):
-    try:
-        tree = ET.parse(config_path)
-        root = tree.getroot()
-    except:
-        LogUtils.error('=> can not parse config.xml.path: %s', config_path)
-        return None
-    channels = root.findall('channel')
-
-    params = channels[index].findall('param')
-    for param_node in params:
-        key = param_node.get('name')
-        param_node.set('value', channel[key])
-
-    sdk_param_nodes = channels[index].find('sdk-params').findall('param')
-    for param_node in sdk_param_nodes:
-        key = param_node.get('name')
-        for param in channel['sdkParams']:
-            if key == param['name']:
-                param_node.set('value', param['value'])
-
-    indent(root)
-    tree = ET.ElementTree(root)
-    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
 
 
 def add_channel(config_path, channel):
@@ -288,17 +262,57 @@ def add_channel(config_path, channel):
     tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
 
 
+def update_channels(config_path, channel, index):
+    try:
+        tree = ET.parse(config_path)
+        root = tree.getroot()
+    except:
+        LogUtils.error('=> can not parse config.xml path: %s', config_path)
+        return
+    channels = root.findall('channel')
+    channel_node = channels[index]
+    params = channel_node.findall('param')
+    for param_node in params:
+        key = param_node.get('name')
+        param_node.set('value', channel[key])
+
+    channel_node.remove(channel_node.find('sdk-params'))
+    sdk_params_node = ET.SubElement(channel_node, 'sdk-params')
+    for p in channel['sdkParams']:
+        p_node = ET.SubElement(sdk_params_node, 'param')
+        p_node.set('name', p['name'])
+        p_node.set('value', p['value'])
+
+    indent(root)
+    tree = ET.ElementTree(root)
+    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+
+
+def del_channel(config_path, index):
+    try:
+        tree = ET.parse(config_path)
+        root = tree.getroot()
+    except:
+        LogUtils.error('=> can not parse config.xml path: %s', config_path)
+        return
+    channels = root.findall('channel')
+    root.remove(channels[index])
+    indent(root)
+    tree = ET.ElementTree(root)
+    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+
+
 def get_channel_config(channel):
     config_file = get_full_path('channelsdk/' + channel['sdk'] + '/config.xml')
     if not os.path.exists(config_file):
         LogUtils.error('the config.xml is not exists of sdk %s.path:%s', channel['name'], config_file)
-        return
+        return None
     try:
         tree = ET.parse(config_file)
         root = tree.getroot()
     except:
         LogUtils.error('can not parse == config.xml.path:%s', config_file)
-        return
+        return None
     channel['name'] = root.get('name')
     channel['sdkParams'] = []
     param_nodes = root.find('params')
@@ -326,6 +340,7 @@ def get_channel_config(channel):
         if version_update_time is not None and version_name_node is not None:
             channel['sdkUpdateTime'] = version_update_time.text
             channel['sdkVersionName'] = version_name_node.text
+    return channel
 
 
 def get_local_config():
@@ -333,7 +348,7 @@ def get_local_config():
     if not os.path.exists(config_file):
         LogUtils.error('config.ini is not exists. ==> ' + config_file)
         return None
-    cf = open(config_file, 'r', encoding='utf-8')
+    cf = open(config_file, 'r', encoding='utf-8-sig')
     lines = cf.readlines()
     cf.close()
     config = {}

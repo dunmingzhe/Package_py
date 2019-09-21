@@ -240,9 +240,9 @@ QMenuBar::item:pressed
 
 QMenu
 {
-    border: 0.1ex solid #BAB9B8;
+    border: 0.3ex solid #BAB9B8;
     color: #31363B;
-    margin: 0.2ex;
+    margin: 0.5ex;
 }
 
 QMenu::icon
@@ -1650,5 +1650,5 @@ QPushButton:pressed
     color: #31363B;
 }
 
-QPushButton, QLabel, QLineEdit, QTextEdit, QComboBox, QCheckBox, QListView
+QPushButton, QLabel, QLineEdit, QTextEdit, QComboBox, QCheckBox, QListView, QMenu, QAction
 {font-family: Microsoft YaHei;font-size: 14px;}

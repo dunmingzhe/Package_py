@@ -52,9 +52,9 @@ class MainWindow(QMainWindow):
         self.set_main_title(960, "参数配置")
         self.setCentralWidget(ChannelListWidget(self, channels))
 
-    def set_add_channel_widget(self, channels):
+    def set_add_channel_widget(self, channels, channel=None):
         self.set_main_title(800, "添加渠道")
-        self.setCentralWidget(ChannelAddWidget(self, channels))
+        self.setCentralWidget(ChannelAddWidget(self, channels, channel))
 
     def set_package_widget(self, channels):
         self.set_main_title(800, "渠道打包")

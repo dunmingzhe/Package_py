@@ -10,10 +10,11 @@ from scripts import Utils
 
 class ChannelAddWidget(QWidget):
 
-    def __init__(self, main, channels):
+    def __init__(self, main, channels, default_channel=None):
         super(ChannelAddWidget, self).__init__()
         self.main_win = main
         self.channels = channels
+        self.default_channel = default_channel
         self.channel = {}
         self.linedit_list = []
         self.game = self.main_win.games[self.main_win.game_index]
@@ -36,9 +37,9 @@ class ChannelAddWidget(QWidget):
         self.channel_id_value.setPlaceholderText("必填参数")
         form_layout1.addRow("渠道ID：", self.channel_id_value)
         self.game_name_value = QLineEdit()
+        self.game_name_value.setText(self.game['name'])
         form_layout1.addRow("游戏名称：", self.game_name_value)
         self.game_package_value = QLineEdit()
-        self.game_name_value.setText(self.game['name'])
         form_layout1.addRow("游戏包名：", self.game_package_value)
         self.game_vcode_value = QLineEdit()
         form_layout1.addRow("游戏版本号：", self.game_vcode_value)
@@ -68,6 +69,11 @@ class ChannelAddWidget(QWidget):
         self.setLayout(v_layout)
 
     def select_channel(self, text):
+        self.channel_id_value.setText("")
+        self.game_package_value.setText("")
+        self.game_vcode_value.setText("")
+        self.game_vname_value.setText("")
+        self.debug_value.setText("false")
         # 先清空表单 （因为formlayout清除一行，会自动上移，所以只需remove第一行）
         i = 0
         row_count = self.form_layout2.rowCount()
@@ -75,6 +81,7 @@ class ChannelAddWidget(QWidget):
             self.form_layout2.removeRow(0)
             i += 1
         self.linedit_list.clear()
+        self.channel = {}
         # 先排序包体参数，防止参数写入乱排序
         self.channel['name'] = ''
         self.channel['sdk'] = text
@@ -83,18 +90,34 @@ class ChannelAddWidget(QWidget):
         self.channel['package'] = ''
         self.channel['gameVersionCode'] = ''
         self.channel['gameVersionName'] = ''
-        self.channel['debug'] = self.debug_value.text().strip()
+        self.channel['debug'] = "false"
         # 获取渠道参数定义
-        Utils.get_channel_config(self.channel)
+        self.channel = Utils.get_channel_config(self.channel)
+        if self.channel is None:
+            return
         # 再添加当前选择的渠道参数
-        channel_name = QLabel(self.channel['name'] + '\t\t\tVersion:' + self.channel['sdkVersionName'] + '\t\tUpdate:' + self.channel['sdkUpdateTime'])
+        channel_name = QLabel(self.channel['name'] + '\t\t\tVersion:' + self.channel['sdkVersionName']
+                              + '\t\tUpdate:' + self.channel['sdkUpdateTime'])
         channel_name.setAlignment(Qt.AlignRight)
         self.form_layout2.addRow(channel_name)
-        for param in self.channel['sdkParams']:
-            line_edit = QLineEdit()
-            line_edit.setPlaceholderText("渠道参数必填")
-            self.form_layout2.addRow(param['showName'] + ':', line_edit)
-            self.linedit_list.append(line_edit)
+        if self.default_channel is not None and text == self.default_channel['sdk']:
+            self.channel_id_value.setText(self.default_channel['channelId'])
+            self.game_name_value.setText(self.default_channel['gameName'])
+            self.game_package_value.setText(self.default_channel['package'])
+            self.game_vcode_value.setText(self.default_channel['gameVersionCode'])
+            self.game_vname_value.setText(self.default_channel['gameVersionName'])
+
+            for param in self.default_channel['sdkParams']:
+                line_edit = QLineEdit()
+                line_edit.setText(param['value'])
+                self.form_layout2.addRow(param['showName'] + ':', line_edit)
+                self.linedit_list.append(line_edit)
+        else:
+            for param in self.channel['sdkParams']:
+                line_edit = QLineEdit()
+                line_edit.setPlaceholderText("渠道参数必填")
+                self.form_layout2.addRow(param['showName'] + ':', line_edit)
+                self.linedit_list.append(line_edit)
 
     def back(self):
         if len(self.channels) <= 0:
@@ -107,6 +130,10 @@ class ChannelAddWidget(QWidget):
             QMessageBox.warning(self, "警告", "渠道ID不能为空！")
             return
         self.channel['channelId'] = self.channel_id_value.text().strip()
+        for channel in self.channels:
+            if self.channel['channelId'] == channel['channelId']:
+                QMessageBox.warning(self, "警告", "渠道已存在！")
+                return
         self.channel['gameName'] = self.game_name_value.text().strip()
         self.channel['package'] = self.game_package_value.text().strip()
         self.channel['gameVersionCode'] = self.game_vcode_value.text().strip()
