@@ -35,7 +35,8 @@ def del_file(src):
             try:
                 src = src.replace('\\', '/')
                 os.remove(src)
-            except:
+            except Exception as e:
+                LogUtils.error('delete file exception!\n%s', e.__str__())
                 return 1
         elif os.path.isdir(src):
             for f in os.listdir(src):
@@ -77,49 +78,51 @@ def list_files(src, res_files, ignore_files):
             for f in os.listdir(src):
                 if src not in ignore_files:
                     list_files(os.path.join(src, f), res_files, ignore_files)
-
     return res_files
 
 
 def get_games(config_path):
-    """
-        get all games
-    """
     try:
         tree = ET.parse(config_path)
         root = tree.getroot()
-    except:
-        LogUtils.error('==> can not parse games.xml.path: %s', config_path)
-        return None
-    games = root.findall('game')
-    if games is None or len(games) <= 0:
-        return None
-    game_list = []
-    for cNode in games:
-        game = {}
-        params = cNode.findall('param')
-        if params is not None and len(params) > 0:
+        games = root.findall('game')
+        if games is None or len(games) <= 0:
+            return None
+        game_list = []
+        for cNode in games:
+            game = {}
+            params = cNode.findall('param')
             for cParam in params:
                 key = cParam.get('name')
                 val = cParam.get('value')
                 game[key] = val
 
-        game_list.append(game)
+            game_list.append(game)
+        return game_list
+    except Exception as e:
+        LogUtils.error('==> can not parse games.xml: %s', config_path)
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return None
 
-    return game_list
 
-
-def update_games(config_path, games):
-    root = ET.Element('games')
-    for game in games:
-        game_node = ET.SubElement(root, 'game')
-        for param in game:
-            param_node = ET.SubElement(game_node, 'param')
-            param_node.set('name', param)
-            param_node.set('value', game[param])
-    indent(root)
-    tree = ET.ElementTree(root)
-    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+def update_games(config_path, game, index):
+    try:
+        tree = ET.parse(config_path)
+        root = tree.getroot()
+        games = root.findall('game')
+        game_node = games[index]
+        params = game_node.findall('param')
+        for param_node in params:
+            key = param_node.get('name')
+            param_node.set('value', game[key])
+        indent(root)
+        tree = ET.ElementTree(root)
+        tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+        return True
+    except Exception as e:
+        LogUtils.error('==> can not parse games.xml: %s', config_path)
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return False
 
 
 def add_game(config_path, game):
@@ -158,83 +161,78 @@ def get_channels(config_path):
     try:
         tree = ET.parse(config_path)
         root = tree.getroot()
-    except:
-        LogUtils.error('=> can not parse config.xml.path: %s', config_path)
+        channels = root.findall('channel')
+        if channels is None or len(channels) <= 0:
+            return None
+        channel_list = []
+        for cNode in channels:
+            channel = {}
+            params = cNode.findall('param')
+            for cParam in params:
+                key = cParam.get('name')
+                val = cParam.get('value')
+                channel[key] = val
+
+            sdk_params = {}
+            sdk_params_node = cNode.find('sdk-params')
+            if sdk_params_node is not None:
+                sdk_param_nodes = sdk_params_node.findall('param')
+                if sdk_param_nodes is not None and len(sdk_param_nodes) > 0:
+                    for cParam in sdk_param_nodes:
+                        key = cParam.get('name')
+                        val = cParam.get('value')
+                        sdk_params[key] = val
+            ret = set_channel_params(channel, sdk_params)
+            if ret:
+                channel_list.append(channel)
+        return channel_list
+    except Exception as e:
+        LogUtils.error('=> can not parse config.xml: %s', config_path)
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
         return None
-    channels = root.findall('channel')
-    if channels is None or len(channels) <= 0:
-        return None
-    channel_list = []
-    for cNode in channels:
-        channel = {}
-        params = cNode.findall('param')
-        for cParam in params:
-            key = cParam.get('name')
-            val = cParam.get('value')
-            channel[key] = val
-
-        sdk_params = cNode.find('sdk-params')
-        sdk_params2 = {}
-        if sdk_params is not None:
-            sdk_param_nodes = sdk_params.findall('param')
-            if sdk_param_nodes is not None and len(sdk_param_nodes) > 0:
-                for cParam in sdk_param_nodes:
-                    key = cParam.get('name')
-                    val = cParam.get('value')
-                    sdk_params2[key] = val
-
-        channel['params'] = sdk_params2
-        ret = set_channel_params(channel)
-        if ret:
-            channel_list.append(channel)
-    return channel_list
 
 
-def set_channel_params(channel):
+def set_channel_params(channel, sdk_params):
     config_file = get_full_path('channelsdk/' + channel['sdk'] + '/config.xml')
     if not os.path.exists(config_file):
-        LogUtils.error('the config.xml is not exists of sdk %s.path:%s', channel['name'], config_file)
-        return 0
+        LogUtils.error(' => the %s config.xml is not exists path: %s', channel['name'], config_file)
+        return False
     try:
         tree = ET.parse(config_file)
         root = tree.getroot()
-    except:
-        LogUtils.error('can not parse == config.xml.path:%s', config_file)
-        return 0
-    param_nodes = root.find('params')
-    channel['sdkParams'] = []
-    if param_nodes is not None and len(param_nodes) > 0:
+        channel['sdkParams'] = []
+        param_nodes = root.find('params')
         for param_node in param_nodes:
             param = {}
             param['name'] = param_node.get('name')
             key = param_node.get('name')
-            if key in channel['params'] and channel['params'][key] is not None:
-                param['value'] = channel['params'][key]
+            if key in sdk_params and sdk_params[key] is not None:
+                param['value'] = sdk_params[key]
             else:
-                LogUtils.info("the sdk %s have a new parameter:%s", channel['name'], key)
+                LogUtils.info(' => the sdk %s have a new parameter: %s', channel['name'], key)
                 param['value'] = ""
             param['showName'] = param_node.get('showName')
             param['writeIn'] = param_node.get('writeIn')
             channel['sdkParams'].append(param)
-    channel.pop('params')
 
-    plugin_nodes = root.find('plugins')
-    if plugin_nodes is not None and len(plugin_nodes) > 0:
         channel['plugins'] = []
+        plugin_nodes = root.find('plugins')
         for p_node in plugin_nodes:
             p = {}
             p['name'] = p_node.get('name')
             p['type'] = p_node.get('type')
             channel['plugins'].append(p)
 
-    version_node = root.find('version')
-    if version_node is not None and len(version_node) > 0:
+        version_node = root.find('version')
         version_update_time = version_node.find('updateTime')
+        channel['sdkUpdateTime'] = version_update_time.text
         version_name_node = version_node.find('versionName')
-        if version_update_time is not None and version_name_node is not None:
-            channel['sdkUpdateTime'] = version_update_time.text
-            channel['sdkVersionName'] = version_name_node.text
-    return 1
+        channel['sdkVersionName'] = version_name_node.text
+        return True
+    except Exception as e:
+        LogUtils.error(' => can not parse config.xml: %s', config_file)
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return False
 
 
 def add_channel(config_path, channel):
@@ -266,57 +264,55 @@ def update_channels(config_path, channel, index):
     try:
         tree = ET.parse(config_path)
         root = tree.getroot()
-    except:
+        channels = root.findall('channel')
+        channel_node = channels[index]
+        params = channel_node.findall('param')
+        for param_node in params:
+            key = param_node.get('name')
+            param_node.set('value', channel[key])
+
+        channel_node.remove(channel_node.find('sdk-params'))
+        sdk_params_node = ET.SubElement(channel_node, 'sdk-params')
+        for p in channel['sdkParams']:
+            p_node = ET.SubElement(sdk_params_node, 'param')
+            p_node.set('name', p['name'])
+            p_node.set('value', p['value'])
+
+        indent(root)
+        tree = ET.ElementTree(root)
+        tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+        return True
+    except Exception as e:
         LogUtils.error('=> can not parse config.xml path: %s', config_path)
-        return
-    channels = root.findall('channel')
-    channel_node = channels[index]
-    params = channel_node.findall('param')
-    for param_node in params:
-        key = param_node.get('name')
-        param_node.set('value', channel[key])
-
-    channel_node.remove(channel_node.find('sdk-params'))
-    sdk_params_node = ET.SubElement(channel_node, 'sdk-params')
-    for p in channel['sdkParams']:
-        p_node = ET.SubElement(sdk_params_node, 'param')
-        p_node.set('name', p['name'])
-        p_node.set('value', p['value'])
-
-    indent(root)
-    tree = ET.ElementTree(root)
-    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return False
 
 
 def del_channel(config_path, index):
     try:
         tree = ET.parse(config_path)
         root = tree.getroot()
-    except:
+        channels = root.findall('channel')
+        root.remove(channels[index])
+        indent(root)
+        tree = ET.ElementTree(root)
+        tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+    except Exception as e:
         LogUtils.error('=> can not parse config.xml path: %s', config_path)
-        return
-    channels = root.findall('channel')
-    root.remove(channels[index])
-    indent(root)
-    tree = ET.ElementTree(root)
-    tree.write(config_path, xml_declaration=True, encoding='utf-8', method='xml')
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
 
 
 def get_channel_config(channel):
     config_file = get_full_path('channelsdk/' + channel['sdk'] + '/config.xml')
     if not os.path.exists(config_file):
-        LogUtils.error('the config.xml is not exists of sdk %s.path:%s', channel['name'], config_file)
-        return None
+        LogUtils.error(' => the %s config.xml is not exists path: %s', channel['name'], config_file)
+        return False
     try:
         tree = ET.parse(config_file)
         root = tree.getroot()
-    except:
-        LogUtils.error('can not parse == config.xml.path:%s', config_file)
-        return None
-    channel['name'] = root.get('name')
-    channel['sdkParams'] = []
-    param_nodes = root.find('params')
-    if param_nodes is not None and len(param_nodes) > 0:
+        channel['name'] = root.get('name')
+        channel['sdkParams'] = []
+        param_nodes = root.find('params')
         for param_node in param_nodes:
             param = {}
             param['name'] = param_node.get('name')
@@ -324,23 +320,24 @@ def get_channel_config(channel):
             param['writeIn'] = param_node.get('writeIn')
             channel['sdkParams'].append(param)
 
-    plugin_nodes = root.find('plugins')
-    if plugin_nodes is not None and len(plugin_nodes) > 0:
         channel['plugins'] = []
+        plugin_nodes = root.find('plugins')
         for p_node in plugin_nodes:
             p = {}
             p['name'] = p_node.get('name')
             p['type'] = p_node.get('type')
             channel['plugins'].append(p)
 
-    version_node = root.find('version')
-    if version_node is not None and len(version_node) > 0:
+        version_node = root.find('version')
         version_update_time = version_node.find('updateTime')
+        channel['sdkUpdateTime'] = version_update_time.text
         version_name_node = version_node.find('versionName')
-        if version_update_time is not None and version_name_node is not None:
-            channel['sdkUpdateTime'] = version_update_time.text
-            channel['sdkVersionName'] = version_name_node.text
-    return channel
+        channel['sdkVersionName'] = version_name_node.text
+        return True
+    except Exception as e:
+        LogUtils.error(' => can not parse config.xml path: %s', config_file)
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return False
 
 
 def get_local_config():
@@ -385,17 +382,22 @@ def write_developer_properties(game, channel, target_file_path):
 
 def write_plugin_config(channel, plugin_path):
     if 'plugins' not in channel:
-        LogUtils.error("渠道SDK未配置可用插件")
+        LogUtils.error("%s SDK no plugins", channel['sdk'])
         return 1
-    root = ET.Element('plugins')
-    for plugin in channel['plugins']:
-        param_node = ET.SubElement(root, 'plugin')
-        param_node.set('name', plugin['name'])
-        param_node.set('type', plugin['type'])
-    indent(root)
-    tree = ET.ElementTree(root)
-    tree.write(plugin_path, xml_declaration=True, encoding='utf-8', method='xml')
-    return 0
+    try:
+        root = ET.Element('plugins')
+        for plugin in channel['plugins']:
+            param_node = ET.SubElement(root, 'plugin')
+            param_node.set('name', plugin['name'])
+            param_node.set('type', plugin['type'])
+        indent(root)
+        tree = ET.ElementTree(root)
+        tree.write(plugin_path, xml_declaration=True, encoding='utf-8', method='xml')
+        return 0
+    except Exception as e:
+        LogUtils.error("write plugins.xml exception")
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return 1
 
 
 def exec_cmd(cmd):

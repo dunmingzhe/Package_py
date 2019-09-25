@@ -1,14 +1,43 @@
 # -*- coding: utf-8 -*-
 import os
-from PyQt5.QtCore import QRunnable, pyqtSignal, QObject, QDateTime
-
+from PyQt5.QtCore import QThreadPool, QThread, QRunnable, pyqtSignal, QObject, QDateTime
 from scripts import LogUtils, Utils, ApkUtils
 
 
+# 打包任务监听线程
+# 通过轮询判断任务线程池活跃线程数，来判断打包是否完成（或被取消）
+class PackageMonitor(QThread):
+    signal = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.pool = QThreadPool()
+        self.pool.globalInstance()
+        self.pool.setMaxThreadCount(3)
+
+    def run(self):
+        flag = True
+        while flag:
+            count = self.pool.activeThreadCount()
+            if count <= 0:  # 打包完成，发完成信号，重置flag，终止线程
+                self.signal.emit()
+                flag = False
+            else:   # 打包进行中，线程休眠
+                QThread.sleep(3)
+
+    def add_runnable(self, runnable):
+        self.pool.start(runnable)
+
+    def clear(self):
+        self.pool.clear()
+
+
+# 打包任务线程发出信号，因为QRunnable不是继承QObject，没有信号机制，所以需借助此类
 class Signal(QObject):
     signal = pyqtSignal(str, int, str, int)
 
 
+# 打包任务线程，执行单一打包任务
 class PackRunnable(QRunnable):
 
     is_close = False
@@ -85,7 +114,7 @@ class PackRunnable(QRunnable):
             return
 
         # 复制渠道特殊配置资源，比如，针对个别渠道设置的loading页或logo
-        ApkUtils.copy_ext_res(self.game, self.channel, decompile_dir)
+        ApkUtils.copy_ext_res(self.game, decompile_dir)
         if self.flag(0, "", 40):
             return
 
@@ -152,7 +181,7 @@ class PackRunnable(QRunnable):
             pass
         else:
             if result == 0:
-                self.signal.signal.emit(self.channel['channelId'], 1, "打包成功：点击此项，打开出包目录", 100)
+                self.signal.signal.emit(self.channel['channelId'], 1, "打包成功：双击打开出包目录", 100)
             else:
                 self.signal.signal.emit(self.channel['channelId'], result, "打包失败：apk包体4k对齐异常，详情查看log.log", 100)
         LogUtils.close()

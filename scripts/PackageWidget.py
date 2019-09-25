@@ -6,26 +6,22 @@ from PyQt5.Qt import QLabel, QLineEdit, QHBoxLayout, QPushButton, QVBoxLayout, Q
     QWidget, QScrollArea, QCheckBox, QProgressBar, QFileDialog, QMessageBox, QListWidgetItem, QAbstractItemView
 
 from scripts import Utils
-from scripts.PackRunnable import PackRunnable
-from scripts.PackageMonitor import PackageMonitor
+from scripts.PackTask import PackageMonitor, PackRunnable
 
 
 class PackageWidget(QWidget):
     def __init__(self, main, channels):
         super(PackageWidget, self).__init__()
+        self.setObjectName("PackageWidget")
         self.main_win = main
         self.game = self.main_win.games[self.main_win.game_index]
         self.channels = channels
         self.check_boxs = []
         self.indexs = []
         self.lbps = {}
-        self.setObjectName("PackageWidget")
-        self.pool = QThreadPool()
-        self.pool.globalInstance()
-        self.pool.setMaxThreadCount(3)
-        self.monitor = PackageMonitor(self.pool)
-        self.monitor.signal.connect(self.complete)
         self.progress = None
+        self.monitor = PackageMonitor()
+        self.monitor.signal.connect(self.complete)
 
         v_layout = QVBoxLayout()
         h_layout1 = QHBoxLayout()
@@ -47,7 +43,7 @@ class PackageWidget(QWidget):
 
         self.qpb_list_widget = QListWidget()
         self.qpb_list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.qpb_list_widget.clicked.connect(self.select_list)
+        self.qpb_list_widget.itemDoubleClicked.connect(self.select_list)
         h_layout1.addWidget(self.qpb_list_widget, 5)
         v_layout.addLayout(h_layout1)
 
@@ -80,7 +76,7 @@ class PackageWidget(QWidget):
         success = self.lbps[channel_id]['success']
         dest_apk_dir = Utils.get_full_path('output/' + self.game['id'] + '/' + channel_id)
         if success:
-            Utils.exec_cmd('start ' + dest_apk_dir)
+            os.startfile(dest_apk_dir)
         else:
             QMessageBox.warning(self, "警告", "打包成功了吗？")
 
@@ -135,7 +131,7 @@ class PackageWidget(QWidget):
             self.set_qpb_list_item(self.channels[i], lbp)
             runnable = PackRunnable(self.game, self.channels[i], apk)
             runnable.signal.signal.connect(self.set_value)
-            self.pool.start(runnable)
+            self.monitor.add_runnable(runnable)
             lbp['runnable'] = runnable
             self.lbps[self.channels[i]['channelId']] = lbp
         # 开启监听线程
@@ -193,7 +189,7 @@ class PackageWidget(QWidget):
         # 因为打包任务调用外部程序，并不能立即终止外部程序连接，所以清空过程有延迟
         for channel_id in self.lbps:
             self.lbps[channel_id]['runnable'].is_close = True
-        self.pool.clear()
+        self.monitor.clear()
 
     # 取消打包（清空任务完成），或打包完成，
     def complete(self):

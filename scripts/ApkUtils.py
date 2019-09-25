@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import sys
 import os.path
@@ -9,6 +8,9 @@ from PIL import Image
 
 from scripts import Utils, LogUtils
 
+'''
+打包apk工具类
+'''
 androidNS = 'http://schemas.android.com/apk/res/android'
 
 
@@ -129,11 +131,11 @@ def copy_libs(decompile_dir, sdk_dir):
             Utils.copy_file(source_file, target_file)
 
 
-def copy_ext_res(game, channel, decompile_dir):
-    ext_res_path = 'games/' + game['id'] + '/channels/' + channel['channelId']
+def copy_ext_res(game, decompile_dir):
+    ext_res_path = 'games/' + game['id'] + '/ext'
     ext_res_path = Utils.get_full_path(ext_res_path)
     if os.path.exists(ext_res_path):
-        LogUtils.warning('the channel %s special res path: %s', channel['channelId'], ext_res_path)
+        LogUtils.warning('the game ext res path: %s', ext_res_path)
         Utils.copy_file(ext_res_path, decompile_dir)
 
 

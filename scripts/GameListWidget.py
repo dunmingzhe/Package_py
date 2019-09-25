@@ -3,7 +3,7 @@ import os
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.Qt import QLabel, QListView, QLineEdit, QFormLayout, QHBoxLayout, \
-    QPushButton, QVBoxLayout, QTextEdit, QFileDialog, QMessageBox, QWidget
+    QPushButton, QVBoxLayout, QTextEdit, QFileDialog, QMessageBox, QWidget, QAbstractItemView
 from PyQt5.QtGui import QPixmap
 
 from scripts import Utils
@@ -21,6 +21,7 @@ class GameListWidget(QWidget):
         v_layout1 = QVBoxLayout()
         self.game_list_view = QListView()
         self.game_list_view.setViewMode(QListView.ListMode)
+        self.game_list_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.game_list_model = GameListModel(self.main_win.games)
         self.game_list_view.setModel(self.game_list_model)
         self.game_list_view.clicked.connect(self.list_item_onclick)
@@ -180,8 +181,7 @@ class GameListWidget(QWidget):
 
         self.main_win.games[self.main_win.game_index] = self.game
         self.game_list_model.update_item(self.main_win.game_index, self.game)
-        Utils.update_games(Utils.get_full_path('games/games.xml'), self.main_win.games)
-        return True
+        return Utils.update_games(Utils.get_full_path('games/games.xml'), self.game, self.main_win.game_index)
 
     def next(self):
         if not self.save_data():

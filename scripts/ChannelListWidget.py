@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import Qt, QStringListModel
 from PyQt5.Qt import QLabel, QListView, QLineEdit, QFormLayout, QHBoxLayout, \
-    QPushButton, QVBoxLayout, QWidget, QMessageBox, QMenu, QAction
+    QPushButton, QVBoxLayout, QWidget, QMessageBox, QMenu, QAction, QAbstractItemView
 
 from scripts import Utils
 
@@ -26,6 +26,7 @@ class ChannelListWidget(QWidget):
         self.list_model.setStringList(self.channel_ids)
         self.channel_list_view = QListView()
         self.channel_list_view.setModel(self.list_model)
+        self.channel_list_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.channel_list_view.clicked.connect(self.list_item_onclick)
         self.channel_list_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.channel_list_view.customContextMenuRequested.connect(self.show_del_menu)
@@ -83,12 +84,10 @@ class ChannelListWidget(QWidget):
         self.game_vcode_value.setText(self.channel['gameVersionCode'])
         self.game_vname_value.setText(self.channel['gameVersionName'])
         self.debug_value.setText(self.channel['debug'])
-        # 先清空表单 （因为formlayout清除一行，会自动上移，所以只需remove第一行）
-        i = 0
-        row_count = self.form_layout2.rowCount()
-        while i < row_count:
+        # 先清空之前渠道参数表单，再添加
+        for i in range(self.form_layout2.rowCount()):
+            # 因为formlayout清除一行，会自动上移，所以只需remove第一行
             self.form_layout2.removeRow(0)
-            i += 1
         self.linedit_list.clear()
         # 再添加当前选择的渠道参数
         channel_name = QLabel(self.channel['name'] + '\t\t\tVersion:' + self.channel['sdkVersionName'] + '\t\tUpdate:' + self.channel['sdkUpdateTime'])
@@ -130,9 +129,7 @@ class ChannelListWidget(QWidget):
             i += 1
         self.channels[self.channel_index] = self.channel
         game_id = self.main_win.games[self.main_win.game_index]['id']
-        print(self.channel)
-        Utils.update_channels(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel, self.channel_index)
-        return True
+        return Utils.update_channels(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel, self.channel_index)
 
     def show_del_menu(self, point):
         self.list_item_onclick()
@@ -158,3 +155,7 @@ class ChannelListWidget(QWidget):
             Utils.del_channel(Utils.get_full_path('games/' + game_id + '/config.xml'), self.channel_index)
             # 重置index，防止 index out of range
             self.channel_index = self.channel_index - 1
+            if self.channel_index < 0:
+                reply = QMessageBox.warning(self, "警告", "当前游戏未添加渠道，将返回游戏列表界面！", QMessageBox.Yes)
+                if reply == QMessageBox.Yes:
+                    self.back()
