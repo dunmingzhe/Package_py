@@ -147,8 +147,7 @@ def rename_package_name(decompile_dir, package_name):
     old_package_name = root.attrib.get('package')
 
     if package_name is None or len(package_name) <= 0:
-        package_name = old_package_name
-        return package_name
+        return old_package_name
 
     if package_name[0:1] == '.':
         package_name = old_package_name + package_name
@@ -196,6 +195,11 @@ def rename_package_name(decompile_dir, package_name):
                 provider_name = old_package_name + '.' + provider_name
             sNode.attrib[key] = provider_name
 
+            provider_authorities = sNode.attrib['{' + androidNS + '}authorities']
+            if provider_authorities.find(old_package_name) != -1:
+                provider_authorities = provider_authorities.replace(old_package_name, package_name)
+                sNode.attrib['{' + androidNS + '}authorities'] = provider_authorities
+
     root.attrib['package'] = package_name
     tree.write(manifest_file, xml_declaration=True, encoding='utf-8', method='xml')
     return package_name
@@ -238,6 +242,10 @@ def modify_manifest(channel, decompile_dir, package_name):
     # 修改游戏名称
     if len(channel['gameName']) > 0:
         app_node.set('{' + androidNS + '}label', channel['gameName'])
+        activity_node_lst = app_node.findall('activity')
+        for activity_node in activity_node_lst:
+            if activity_node.get('{' + androidNS + '}label') is not None:
+                activity_node.set('{' + androidNS + '}label', channel['gameName'])
         LogUtils.info('modify game name: %s', channel['gameName'])
     # 写入meta-data
     key = '{' + androidNS + '}name'
@@ -414,127 +422,83 @@ def align_apk(apk_file, target_file):
 
 
 def append_channel_mark(game, sdk_dest_dir, decompile_dir):
-    """
-        自动给游戏图标加上渠道SDK的角标
-        没有角标，生成没有角标的ICON
-    """
-    # 特殊V4处理
     game_icon_path = 'games/' + game['id'] + '/icon/icon.png'
     game_icon_path = Utils.get_full_path(game_icon_path)
     if not os.path.exists(game_icon_path):
         LogUtils.info('The game %s icon is not exists : %s', game['id'], game_icon_path)
+        return
+    LogUtils.info('The game %s icon path : %s', game['id'], game_icon_path)
+
+    game_icon_name = get_app_icon_name(decompile_dir)
+    if game_icon_name is None:
+        return
+    game_icon_name = game_icon_name + '.png'
+    LogUtils.info('The game icon name: %s', game_icon_name)
+
+    icon_img = Image.open(game_icon_path)
+    mark_path = sdk_dest_dir + '/mark.png'
+    if not os.path.exists(mark_path):
+        LogUtils.info('The mark path is not exists : %s', mark_path)
     else:
-        LogUtils.info('The game %s icon path : %s', game['id'], game_icon_path)
-        icon_img = Image.open(game_icon_path)
-        mark_path = sdk_dest_dir + '/mark.png'
-        if not os.path.exists(mark_path):
-            LogUtils.info('The mark path is not exists : %s', mark_path)
-        else:
-            LogUtils.info('The mark path : %s', mark_path)
-            mark_img = Image.open(mark_path)
-            icon_img = merge_icon_mark(icon_img, mark_img, (0, 0))
+        LogUtils.info('The mark path : %s', mark_path)
+        mark_img = Image.open(mark_path)
+        icon_img = merge_icon_mark(icon_img, mark_img, (0, 0))
 
-        ldpi_size = (36, 36)
-        mdpi_size = (48, 48)
-        hdpi_size = (72, 72)
-        xhdpi_size = (96, 96)
-        xxhdpi_size = (144, 144)
-        xxxhdpi_size = (192, 192)
+    ldpi_icon = icon_img.resize((36, 36), Image.ANTIALIAS)
+    mdpi_icon = icon_img.resize((48, 48), Image.ANTIALIAS)
+    hdpi_icon = icon_img.resize((72, 72), Image.ANTIALIAS)
+    xhdpi_icon = icon_img.resize((96, 96), Image.ANTIALIAS)
+    xxhdpi_icon = icon_img.resize((144, 144), Image.ANTIALIAS)
+    xxxhdpi_icon = icon_img.resize((192, 192), Image.ANTIALIAS)
+    icons = (ldpi_icon, mdpi_icon, hdpi_icon, xhdpi_icon, xxhdpi_icon, xxxhdpi_icon)
 
-        ldpi_icon = icon_img.resize(ldpi_size, Image.ANTIALIAS)
-        mdpi_icon = icon_img.resize(mdpi_size, Image.ANTIALIAS)
-        hdpi_icon = icon_img.resize(hdpi_size, Image.ANTIALIAS)
-        xhdpi_icon = icon_img.resize(xhdpi_size, Image.ANTIALIAS)
-        xxhdpi_icon = icon_img.resize(xxhdpi_size, Image.ANTIALIAS)
-        xxxhdpi_icon = icon_img.resize(xxxhdpi_size, Image.ANTIALIAS)
+    drawables = ('drawable-ldpi', 'drawable-mdpi', 'drawable-hdpi', 'drawable-xhdpi', 'drawable-xxhdpi', 'drawable-xxxhdpi')
+    mipmaps = ('mipmap-ldpi', 'mipmap-mdpi', 'mipmap-hdpi', 'mipmap-xhdpi', 'mipmap-xxhdpi', 'mipmap-xxxhdpi')
+    for drawable in drawables:
+        icon_dir = decompile_dir + '/res/' + drawable
+        Utils.del_file(icon_dir + '/' + game_icon_name)
+        if os.path.exists(icon_dir) and len(os.listdir(icon_dir)) <= 0:
+            os.rmdir(icon_dir)
 
-        ldpi_path = decompile_dir + '/res/drawable-ldpi'
-        mdpi_path = decompile_dir + '/res/drawable-mdpi'
-        hdpi_path = decompile_dir + '/res/drawable-hdpi'
-        xhdpi_path = decompile_dir + '/res/drawable-xhdpi'
-        xxhdpi_path = decompile_dir + '/res/drawable-xxhdpi'
-        xxxhdpi_path = decompile_dir + '/res/drawable-xxxhdpi'
+        icon_dir = decompile_dir + '/res/' + drawable + '-v4'
+        Utils.del_file(icon_dir + '/' + game_icon_name)
+        if os.path.exists(icon_dir) and len(os.listdir(icon_dir)) <= 0:
+            os.rmdir(icon_dir)
+    xxhdpi_icon.save(decompile_dir + '/res/drawable/' + game_icon_name, 'PNG')
 
-        ldpi_pathv4 = decompile_dir + '/res/drawable-ldpi-v4'
-        mdpi_pathv4 = decompile_dir + '/res/drawable-mdpi-v4'
-        hdpi_pathv4 = decompile_dir + '/res/drawable-hdpi-v4'
-        xhdpi_pathv4 = decompile_dir + '/res/drawable-xhdpi-v4'
-        xxhdpi_pathv4 = decompile_dir + '/res/drawable-xxhdpi-v4'
-        xxxhdpi_pathv4 = decompile_dir + '/res/drawable-xxxhdpi-v4'
+    for i in range(len(mipmaps)):
+        icon_dir = decompile_dir + '/res/' + mipmaps[i] + '-v4'
+        Utils.del_file(icon_dir + '/' + game_icon_name)
+        if os.path.exists(icon_dir) and len(os.listdir(icon_dir)) <= 0:
+            os.rmdir(icon_dir)
 
-        mip_ldpi_path = decompile_dir + '/res/mipmap-ldpi'
-        mip_mdpi_path = decompile_dir + '/res/mipmap-mdpi'
-        mip_hdpi_path = decompile_dir + '/res/mipmap-hdpi'
-        mip_xhdpi_path = decompile_dir + '/res/mipmap-xhdpi'
-        mip_xxhdpi_path = decompile_dir + '/res/mipmap-xxhdpi'
-        mip_xxxhdpi_path = decompile_dir + '/res/mipmap-xxxhdpi'
-
-        game_icon_name = get_app_icon_name(decompile_dir) + '.png'
-        LogUtils.info('The game icon name: %s', game_icon_name)
-
-        if not os.path.exists(ldpi_path):
-            os.makedirs(ldpi_path)
-        ldpi_icon.save(os.path.join(ldpi_path, game_icon_name), 'PNG')
-        if not os.path.exists(mdpi_path):
-            os.makedirs(mdpi_path)
-        mdpi_icon.save(os.path.join(mdpi_path, game_icon_name), 'PNG')
-        if not os.path.exists(hdpi_path):
-            os.makedirs(hdpi_path)
-        hdpi_icon.save(os.path.join(hdpi_path, game_icon_name), 'PNG')
-        if not os.path.exists(xhdpi_path):
-            os.makedirs(xhdpi_path)
-        xhdpi_icon.save(os.path.join(xhdpi_path, game_icon_name), 'PNG')
-        if not os.path.exists(xxhdpi_path):
-            os.makedirs(xxhdpi_path)
-        xxhdpi_icon.save(os.path.join(xxhdpi_path, game_icon_name), 'PNG')
-        if not os.path.exists(xxxhdpi_path):
-            os.makedirs(xxxhdpi_path)
-        xxxhdpi_icon.save(os.path.join(xxxhdpi_path, game_icon_name), 'PNG')
-
-        # 处理只有V4下图标 没有drawable下图标的判断
-        if os.path.exists(os.path.join(ldpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(ldpi_pathv4, game_icon_name))
-        if os.path.exists(os.path.join(mdpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(mdpi_pathv4, game_icon_name))
-        if os.path.exists(os.path.join(hdpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(hdpi_pathv4, game_icon_name))
-        if os.path.exists(os.path.join(xhdpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(xhdpi_pathv4, game_icon_name))
-        if os.path.exists(os.path.join(xxhdpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(xxhdpi_pathv4, game_icon_name))
-        if os.path.exists(os.path.join(xxxhdpi_pathv4, game_icon_name)):
-            Utils.del_file(os.path.join(xxxhdpi_pathv4, game_icon_name))
-
-        if os.path.exists(mip_ldpi_path):
-            ldpi_icon.save(os.path.join(mip_ldpi_path, game_icon_name), 'PNG')
-        if os.path.exists(mip_hdpi_path):
-            hdpi_icon.save(os.path.join(mip_hdpi_path, game_icon_name), 'PNG')
-        if os.path.exists(mip_mdpi_path):
-            mdpi_icon.save(os.path.join(mip_mdpi_path, game_icon_name), 'PNG')
-        if os.path.exists(mip_xhdpi_path):
-            xhdpi_icon.save(os.path.join(mip_xhdpi_path, game_icon_name), 'PNG')
-        if os.path.exists(mip_xxhdpi_path):
-            xxhdpi_icon.save(os.path.join(mip_xxhdpi_path, game_icon_name), 'PNG')
-        if os.path.exists(mip_xxxhdpi_path):
-            xxxhdpi_icon.save(os.path.join(mip_xxxhdpi_path, game_icon_name), 'PNG')
+        icon_dir = decompile_dir + '/res/' + mipmaps[i]
+        if not os.path.exists(icon_dir):
+            os.makedirs(icon_dir)
+        icons[i].save(os.path.join(icon_dir, game_icon_name), 'PNG')
 
 
 # 从AndroidManifest.xml中获取游戏图标的名称
 def get_app_icon_name(decompile_dir):
-    ET.register_namespace('android', androidNS)
-    tree = ET.parse(decompile_dir + '/AndroidManifest.xml')
-    root = tree.getroot()
-    application = root.find('application')
-    if application is None:
-        return 'ic_launcher'
-    key = '{' + androidNS + '}icon'
-    icon_name = application.get(key)
-    LogUtils.warning('=>AndroidManifest key iconName: %s', icon_name)
-    if icon_name is None:
-        name = 'ic_launcher'
+    try:
+        ET.register_namespace('android', androidNS)
+        tree = ET.parse(decompile_dir + '/AndroidManifest.xml')
+        root = tree.getroot()
+        application = root.find('application')
+        key = '{' + androidNS + '}icon'
+        icon_name = application.get(key)
+        LogUtils.info('=>AndroidManifest key iconName: %s', icon_name)
+        if icon_name is None:
+            name = 'ic_launcher'
+        else:
+            name = icon_name.split('/')[-1]
+        application.set(key, '@mipmap/' + name)
+        tree.write(decompile_dir + '/AndroidManifest.xml', xml_declaration=True, encoding='utf-8', method='xml')
         return name
-    name = icon_name.split('/')[-1]
-    return name
+    except Exception as e:
+        LogUtils.error("get_app_icon_name exception")
+        LogUtils.error('parse xml exception!\n%s', e.__str__())
+        return None
 
 
 def merge_icon_mark(img_icon, img_mark, position):
