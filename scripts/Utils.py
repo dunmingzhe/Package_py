@@ -362,7 +362,7 @@ def write_developer_properties(game, channel, target_file_path):
     config = get_local_config()
     if config is None:
         return 1
-    pro_str = 'YINHU_SDK_VERSION_CODE=' + config['YINHU_SDK_VERSION_CODE'] + '\n'
+    pro_str = 'YINHU_SDK_VERSION_CODE=' + channel['sdkVersionName'] + '\n'
     pro_str = pro_str + 'YINHU_APPID=' + game['id'] + '\n'
     pro_str = pro_str + 'YINHU_APPKEY=' + game['key'] + '\n'
     pro_str = pro_str + 'YINHU_Channel=' + channel['channelId'] + '\n'

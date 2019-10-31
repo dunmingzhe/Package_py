@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import shutil
 import sys
 import os.path
 from xml.etree import ElementTree as ET
@@ -326,6 +327,30 @@ def generate_r_file(package_name, decompile_dir):
     return 0
 
 
+def classes_split(decompile_dir, sdk_dest_dir):
+    smali_path = decompile_dir + '/smali'
+    filter_path = sdk_dest_dir + '/classes.filter'
+    if not os.path.exists(filter_path):
+        return 0
+    filter_file = open(filter_path, encoding='utf-8')
+    content = filter_file.read()
+    filter_file.close()
+    smali2_path = decompile_dir + '/smali_classes2'
+    if not os.path.exists(smali2_path):
+        os.mkdir(smali2_path)
+    try:
+        filters = eval(content)
+        for dir in filters:
+            class_src_dir = smali_path + '/' + dir
+            if os.path.exists(class_src_dir):
+                class_dest_dir = smali2_path + '/' + dir
+                shutil.move(class_src_dir, class_dest_dir)
+        return 0
+    except Exception as e:
+        LogUtils.error('%s parse failed: %s', filter_path, e.__str__())
+        return 1
+
+
 def edit_yml(channel, decompile_dir):
     LogUtils.info('-----> EditYML <------')
     path = decompile_dir + '/apktool.yml'
@@ -464,6 +489,8 @@ def append_channel_mark(game, sdk_dest_dir, decompile_dir):
         Utils.del_file(icon_dir + '/' + game_icon_name)
         if os.path.exists(icon_dir) and len(os.listdir(icon_dir)) <= 0:
             os.rmdir(icon_dir)
+    if not os.path.exists(decompile_dir + '/res/drawable'):
+        os.mkdir(decompile_dir + '/res/drawable')
     xxhdpi_icon.save(decompile_dir + '/res/drawable/' + game_icon_name, 'PNG')
 
     for i in range(len(mipmaps)):

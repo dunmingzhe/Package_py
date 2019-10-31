@@ -133,23 +133,29 @@ class GameListWidget(QWidget):
                 QMessageBox.warning(self, "警告", "必须上传512*512.png图片")
                 return
             self.icon_img.setPixmap(pix)
-            old_icon = Utils.get_full_path('games/' + self.game['id'] + '/icon/icon.png')
-            if os.path.exists(old_icon):
-                if os.path.samefile(os.path.dirname(fname[0]), os.path.dirname(old_icon)):
-                    if not os.path.samefile(fname[0], old_icon):
+            current_icon = Utils.get_full_path('games/' + self.game['id'] + '/icon/icon.png')
+            if os.path.exists(current_icon):
+                if os.path.samefile(os.path.dirname(fname[0]), os.path.dirname(current_icon)):
+                    if not os.path.samefile(fname[0], current_icon):    # 如果选中的，在game的icon目录下，但不是当前icon，则进行重命名
                         count = 0
-                        temp = 'icon' + str(count) + '.png'
+                        temp = 'icon0.png'
                         while os.path.exists(Utils.get_full_path('games/' + self.game['id'] + '/icon/' + temp)):
-                            temp = 'icon' + str(count) + '.png'
                             count += 1
-                        os.renames(old_icon, Utils.get_full_path('games/' + self.game['id'] + '/icon/' + temp))
-                        os.renames(fname[0], old_icon)
-                    else:
+                            temp = 'icon' + str(count) + '.png'
+                        os.renames(current_icon, Utils.get_full_path('games/' + self.game['id'] + '/icon/' + temp))
+                        os.renames(fname[0], current_icon)
+                    else:   # 如果所选的是当前icon，不做处理
                         return
-                else:
-                    Utils.copy_file(fname[0], old_icon)
+                else:   # 如果选中的不在game的icon目录下，则重命名当前icon，并将选中的icon复制到目录下作为当前icon
+                    count = 0
+                    temp = 'icon0.png'
+                    while os.path.exists(Utils.get_full_path('games/' + self.game['id'] + '/icon/' + temp)):
+                        count += 1
+                        temp = 'icon' + str(count) + '.png'
+                    os.renames(current_icon, Utils.get_full_path('games/' + self.game['id'] + '/icon/' + temp))
+                    Utils.copy_file(fname[0], current_icon)
             else:
-                Utils.copy_file(fname[0], old_icon)
+                Utils.copy_file(fname[0], current_icon)
 
     def save_data(self):
         if self.game_name_value.text().strip() == "":

@@ -148,6 +148,11 @@ class PackRunnable(QRunnable):
         if self.flag(result, "打包失败：重新生成R文件异常，详情查看log.log", 75):
             return
 
+        # 防止方法数超65535，判断是否分dex
+        result = ApkUtils.classes_split(decompile_dir, sdk_dest_dir)
+        if self.flag(result, "打包失败：分dex出现异常，详情查看log.log", 78):
+            return
+
         # 修改apktool.yml里的压缩配置，防止包体变大
         ApkUtils.edit_yml(self.channel, decompile_dir)
         if self.flag(0, "", 80):
