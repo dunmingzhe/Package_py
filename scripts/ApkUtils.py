@@ -77,7 +77,7 @@ def merge_manifest(decompile_dir, sdk_dir):
     sdk_tree = ET.parse(sdk_manifest)
     sdk_root = sdk_tree.getroot()
 
-    f = open(target_manifest)
+    f = open(target_manifest, 'r', encoding='utf-8')
     target_content = f.read()
     f.close()
     permission_config_node = sdk_root.find('permissionConfig')
