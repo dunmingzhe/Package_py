@@ -17,20 +17,16 @@ class GameListWidget(QWidget):
         self.keystore_exchanged = False
 
         self.setObjectName("GameListWidget")
-        h_layout = QHBoxLayout()
-        v_layout1 = QVBoxLayout()
+        v_layout = QVBoxLayout()
+
+        h_layout1 = QHBoxLayout()
         self.game_list_view = QListView()
         self.game_list_view.setViewMode(QListView.ListMode)
         self.game_list_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.game_list_model = GameListModel(self.main_win.games)
         self.game_list_view.setModel(self.game_list_model)
         self.game_list_view.clicked.connect(self.list_item_onclick)
-        v_layout1.addWidget(self.game_list_view)
-        create_game_btn = QPushButton("创建游戏")
-        create_game_btn.setFixedWidth(100)
-        create_game_btn.clicked.connect(self.add_game)
-        v_layout1.addWidget(create_game_btn)
-        h_layout.addLayout(v_layout1, 1)
+        h_layout1.addWidget(self.game_list_view, 1)
 
         self.game = self.main_win.games[self.main_win.game_index]
 
@@ -46,42 +42,52 @@ class GameListWidget(QWidget):
         self.game_appkey_value = QLabel()
         self.game_appkey_value.setTextInteractionFlags(Qt.TextSelectableByMouse)
         form_layout.addRow("客户端Key：", self.game_appkey_value)
-        h_layout2 = QHBoxLayout()
+        h_layout = QHBoxLayout()
         self.keystore_path = QLineEdit()
         select_key_btn = QPushButton("浏览")
         select_key_btn.setStyleSheet('QPushButton{border-radius: 0px;}')
         select_key_btn.clicked.connect(self.select_ketstore)
-        h_layout2.addWidget(self.keystore_path)
-        h_layout2.addWidget(select_key_btn)
-        form_layout.addRow("KeyStore:", h_layout2)
+        h_layout.addWidget(self.keystore_path)
+        h_layout.addWidget(select_key_btn)
+        form_layout.addRow("KeyStore:", h_layout)
         self.keystore_pwd_value = QLineEdit()
         form_layout.addRow("KeyPass:", self.keystore_pwd_value)
         self.keystore_alias_value = QLineEdit()
         form_layout.addRow("Alias:", self.keystore_alias_value)
         self.keystore_aliaspwd_value = QLineEdit()
         form_layout.addRow("AliasPass:", self.keystore_aliaspwd_value)
-        h_layout.addLayout(form_layout, 3)
+        h_layout1.addLayout(form_layout, 3)
 
-        v_layout2 = QVBoxLayout()
-        v_layout2.addStretch(1)
+        v_layout1 = QVBoxLayout()
+        v_layout1.addStretch(1)
         self.icon_img = QLabel()
         self.icon_img.setMaximumSize(QtCore.QSize(200, 200))
         self.icon_img.setMinimumSize(QtCore.QSize(200, 200))
         self.icon_img.setScaledContents(True)
-        v_layout2.addWidget(self.icon_img)
+        v_layout1.addWidget(self.icon_img)
         icon_exchange_btn = QPushButton("更换Icon")
         icon_exchange_btn.setFixedWidth(100)
         icon_exchange_btn.clicked.connect(self.exchange_icon)
-        v_layout2.addWidget(icon_exchange_btn, alignment=Qt.AlignHCenter)
-        v_layout2.addStretch(2)
+        v_layout1.addWidget(icon_exchange_btn, alignment=Qt.AlignHCenter)
+        v_layout1.addStretch(2)
+        h_layout1.addLayout(v_layout1, 1)
+        v_layout.addLayout(h_layout1)
+
+        h_layout2 = QHBoxLayout()
+        create_game_btn = QPushButton("返 回")
+        create_game_btn.setFixedWidth(100)
+        create_game_btn.clicked.connect(self.back)
+        h_layout2.addWidget(create_game_btn, alignment=Qt.AlignLeft | Qt.AlignBottom)
+        back_btn = QPushButton("创建游戏")
+        back_btn.setFixedWidth(100)
+        back_btn.clicked.connect(self.add_game)
+        h_layout2.addWidget(back_btn, alignment=Qt.AlignHCenter)
         next_btn = QPushButton("下一步")
         next_btn.setFixedWidth(100)
         next_btn.clicked.connect(self.next)
-        v_layout2.addStretch(1)
-        v_layout2.addWidget(next_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
-        h_layout.addLayout(v_layout2, 1)
-
-        self.setLayout(h_layout)
+        h_layout2.addWidget(next_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
+        v_layout.addLayout(h_layout2)
+        self.setLayout(v_layout)
         self.set_game_info()
 
     def set_game_info(self):
@@ -103,6 +109,9 @@ class GameListWidget(QWidget):
         self.main_win.game_index = self.game_list_view.currentIndex().row()
         self.game = self.main_win.games[self.main_win.game_index]
         self.set_game_info()
+
+    def back(self):
+        self.main_win.set_main_widget()
 
     def add_game(self):
         if not self.save_data():

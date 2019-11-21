@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from PyQt5.QtCore import Qt, QSize, QThreadPool
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.Qt import QLabel, QLineEdit, QHBoxLayout, QPushButton, QVBoxLayout, QListWidget, QProgressDialog,\
     QWidget, QScrollArea, QCheckBox, QProgressBar, QFileDialog, QMessageBox, QListWidgetItem, QAbstractItemView
 

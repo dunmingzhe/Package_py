@@ -8,6 +8,7 @@ from scripts.ChannelAddWidget import ChannelAddWidget
 from scripts.ChannelListWidget import ChannelListWidget
 from scripts.GameCreateWidget import GameCreateWidget
 from scripts.GameListWidget import GameListWidget
+from scripts.MainWidget import MainWidget
 from scripts.PackageWidget import PackageWidget
 
 
@@ -16,6 +17,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         LogUtils.add_logger()
+        self.games = Utils.get_games(Utils.get_full_path('games/games.xml'))
         self.game_index = 0
         self.setObjectName("MainWindow")
         self.resize(960, 540)
@@ -25,18 +27,20 @@ class MainWindow(QMainWindow):
         size_policy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
         self.setSizePolicy(size_policy)
         self.setWindowIcon(QIcon('pack.ico'))
-        self.games = Utils.get_games(Utils.get_full_path('games/games.xml'))
-        if self.games is None:
-            self.games = []
-            self.set_create_game_widget(self.games)
-        else:
-            self.set_game_list_widget(self.games)
+        self.set_main_widget()
 
     def set_main_title(self, width, title):
         self.setMinimumSize(QtCore.QSize(width, 540))
         self.setMaximumSize(QtCore.QSize(width, 540))
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainWindow", title))
+
+    def set_main_widget(self):
+        self.setMinimumSize(QtCore.QSize(800, 500))
+        self.setMaximumSize(QtCore.QSize(800, 500))
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("MainWindow", "打包方式选择"))
+        self.setCentralWidget(MainWidget(self))
 
     def set_game_list_widget(self, games):
         self.games = games

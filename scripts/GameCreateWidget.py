@@ -72,16 +72,10 @@ class GameCreateWidget(QWidget):
         create_btn.clicked.connect(self.create)
         v_layout2.addWidget(create_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
         v_layout2.addStretch(1)
-        if len(self.main_win.games) > 0:
-            back_btn = QPushButton("返 回")
-            back_btn.setFixedWidth(100)
-            back_btn.clicked.connect(self.back)
-            v_layout2.addWidget(back_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
-        else:
-            back_btn = QPushButton("退 出")
-            back_btn.setFixedWidth(100)
-            back_btn.clicked.connect(self.main_win.close)
-            v_layout2.addWidget(back_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
+        back_btn = QPushButton("返 回")
+        back_btn.setFixedWidth(100)
+        back_btn.clicked.connect(self.back)
+        v_layout2.addWidget(back_btn, alignment=Qt.AlignRight | Qt.AlignBottom)
         h_layout.addLayout(v_layout2, 1)
 
         self.setLayout(h_layout)
@@ -107,7 +101,10 @@ class GameCreateWidget(QWidget):
             self.icon_path = fname[0]
 
     def back(self):
-        self.main_win.set_game_list_widget(self.main_win.games)
+        if len(self.main_win.games) > 0:
+            self.main_win.set_game_list_widget(self.main_win.games)
+        else:
+            self.main_win.set_main_widget()
 
     def create(self):
         if self.game_name_value.text().strip() == "":
