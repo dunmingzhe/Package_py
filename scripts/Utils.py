@@ -362,23 +362,12 @@ def write_developer_properties(game, channel, target_file_path):
     config = get_local_config()
     if config is None:
         return 1
-    pro_str = ''
-    if os.path.exists(target_file_path):
-        target_file = open(target_file_path, 'r', encoding='utf-8')
-        pro_str = target_file.read()
-        target_file.close()
-    if -1 == pro_str.find('YINHU_SDK_VERSION_CODE'):
-        pro_str = pro_str + 'YINHU_SDK_VERSION_CODE=' + channel['sdkVersionName'] + '\n'
-    if -1 == pro_str.find('YINHU_APPID'):
-        pro_str = pro_str + 'YINHU_APPID=' + game['id'] + '\n'
-    if -1 == pro_str.find('YINHU_APPKEY'):
-        pro_str = pro_str + 'YINHU_APPKEY=' + game['key'] + '\n'
-    if -1 == pro_str.find('YINHU_Channel'):
-        pro_str = pro_str + 'YINHU_Channel=' + channel['channelId'] + '\n'
-    if -1 == pro_str.find('YINHU_AUTH_URL'):
-        pro_str = pro_str + 'YINHU_AUTH_URL=' + config['YINHU_AUTH_URL'] + '\n'
-    if -1 == pro_str.find('DEBUG_MODES'):
-        pro_str = pro_str + 'DEBUG_MODES=' + channel['debug'] + '\n'
+    pro_str = 'YINHU_SDK_VERSION_CODE=' + channel['sdkVersionName'] + '\n'
+    pro_str = pro_str + 'YINHU_APPID=' + game['id'] + '\n'
+    pro_str = pro_str + 'YINHU_APPKEY=' + game['key'] + '\n'
+    pro_str = pro_str + 'YINHU_Channel=' + channel['channelId'] + '\n'
+    pro_str = pro_str + 'YINHU_AUTH_URL=' + config['YINHU_AUTH_URL'] + '\n'
+    pro_str = pro_str + 'DEBUG_MODES=' + channel['debug'] + '\n'
     if channel['sdkParams'] is not None and len(channel['sdkParams']) > 0:
         for param in channel['sdkParams']:
             if param['writeIn'] == '2':

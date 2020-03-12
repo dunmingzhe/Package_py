@@ -375,10 +375,11 @@ def edit_yml(channel, decompile_dir):
                 break
             line.replace('\r', '')
             if line.strip() != '':
-                content += line
                 if line.find('doNotCompress:') == 0:
                     yml_file.tell()
-                    content += '- assets/*\n'
+                    content += 'doNotCompress:\n- assets/*\n'
+                else:
+                    content += line
     LogUtils.info("apktool.yml:\n%s", content)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -393,7 +394,7 @@ def recompile_apk(source_folder, apk_file, frame_work_dir):
 
 def copy_root_ext_files(apk_file, decompile_dir):
     aapt = Utils.get_full_path('tools/aapt2.exe')
-    ignore_files = ['AndroidManifest.xml', 'apktool.yml', 'smali', 'res', 'original', 'lib', 'build', 'assets',
+    ignore_files = ['AndroidManifest.xml', 'apktool.yml', 'smali', 'res', 'original', 'lib', 'libs', 'build', 'assets',
                     'unknown', 'kotlin', 'smali_classes2', 'smali_classes3', 'smali_classes4', 'smali_classes5']
     ignore_file_paths = []
     for file in ignore_files:
