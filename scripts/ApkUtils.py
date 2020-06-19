@@ -242,11 +242,26 @@ def modify_manifest(channel, decompile_dir, package_name):
     app_node = root.find('application')
     # 修改游戏名称
     if len(channel['gameName']) > 0:
-        app_node.set('{' + androidNS + '}label', channel['gameName'])
+        label = app_node.get('{' + androidNS + '}label')
+        if label.find('@string/') == 0:
+            app_name = label[8:len(label)]
+        else:
+            app_name = 'app_name'
+            app_node.set('{' + androidNS + '}label', '@string/' + app_name)
         activity_node_lst = app_node.findall('activity')
         for activity_node in activity_node_lst:
             if activity_node.get('{' + androidNS + '}label') is not None:
-                activity_node.set('{' + androidNS + '}label', channel['gameName'])
+                activity_node.set('{' + androidNS + '}label', '@string/' + app_name)
+        string_file = decompile_dir + '/res/values/strings.xml'
+        string_tree = ET.parse(string_file)
+        strings = string_tree.getroot().findall('string')
+        for string in strings:
+            if string.get('name') == app_name:
+                string_tree.getroot().remove(string)
+                break
+        string_node = SubElement(string_tree.getroot(), 'string', {'name': app_name})
+        string_node.text = channel['gameName']
+        string_tree.write(string_file, xml_declaration=True, encoding='utf-8', method='xml')
         LogUtils.info('modify game name: %s', channel['gameName'])
     # 写入meta-data
     key = '{' + androidNS + '}name'
