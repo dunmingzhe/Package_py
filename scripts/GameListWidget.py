@@ -27,7 +27,7 @@ class GameListWidget(QWidget):
         self.game_list_view.setModel(self.game_list_model)
         self.game_list_view.clicked.connect(self.list_item_onclick)
         h_layout1.addWidget(self.game_list_view, 1)
-
+        self.game_list_view.setCurrentIndex(self.game_list_model.index(self.main_win.game_index))
         self.game = self.main_win.games[self.main_win.game_index]
 
         form_layout = QFormLayout()

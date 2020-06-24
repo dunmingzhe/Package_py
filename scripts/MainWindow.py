@@ -10,6 +10,7 @@ from scripts.GameCreateWidget import GameCreateWidget
 from scripts.GameListWidget import GameListWidget
 from scripts.MainWidget import MainWidget
 from scripts.PackageWidget import PackageWidget
+from scripts.PackageWidgetM import PackageWidgetM
 
 
 class MainWindow(QMainWindow):
@@ -63,3 +64,7 @@ class MainWindow(QMainWindow):
     def set_package_widget(self, channels):
         self.set_main_title(800, "渠道打包")
         self.setCentralWidget(PackageWidget(self, channels))
+
+    def set_m_package_widget(self):
+        self.set_main_title(960, "多游戏打包")
+        self.setCentralWidget(PackageWidgetM(self))

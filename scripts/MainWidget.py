@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtCore import Qt
-from PyQt5.Qt import QLabel, QMovie, QHBoxLayout, QVBoxLayout, QPushButton, QWidget
+from PyQt5.Qt import QLabel, QMovie, QHBoxLayout, QVBoxLayout, QPushButton, QWidget, QMessageBox
 
 
 class MainWidget(QWidget):
@@ -32,7 +32,10 @@ class MainWidget(QWidget):
         self.setLayout(v_layout)
 
     def sub_pack(self):
-        print("ssssssss")
+        if self.main_win.games is not None and len(self.main_win.games) > 0:
+            self.main_win.set_m_package_widget()
+        else:
+            QMessageBox.warning(self, "警告", "无游戏配置，请先添加游戏！")
 
     def to_pack(self):
         if self.main_win.games is None or len(self.main_win.games) <= 0:
